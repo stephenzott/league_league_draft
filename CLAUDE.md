@@ -83,14 +83,26 @@ ESPN uses accents and dots our hardcoded names don't (`Joaquín Niemann`, `J.J. 
 
 ---
 
-### Event 2 — MLB 🔲 NOT YET BUILT
+### Event 2 — MLB ✅ BUILT
 
 - **Dates / window:** August 1–14, 2026.
 - **How it works:** Each owner is assigned one MLB team. Best win-loss record over the window earns 8 draft points; worst record earns 1.
 - **Tiebreaker:** Total runs scored by the team over the window.
-- **Assignments:** TBD — being assigned now.
-- **Live data source:** `site.api.espn.com/apis/site/v2/sports/baseball/mlb/scoreboard`
-- **Notes:** Fetch all games in the window with `?dates=20260801-20260814&limit=200`. For each owner's team, count wins and losses from completed games; sum runs scored for the tiebreaker.
+- **Sorting:** Win percentage (W / (W+L)) as primary sort; handles unequal game counts from rainouts/doubleheaders. Runs scored breaks ties.
+- **Live data source:** `https://site.api.espn.com/apis/site/v2/sports/baseball/mlb/scoreboard?dates=20260801-20260814&limit=200`
+
+#### MLB team assignments (randomly drawn, fixed)
+
+| Owner   | Team                    | ESPN Abbr |
+|---------|-------------------------|-----------|
+| Matt    | San Francisco Giants    | SF        |
+| Keanan  | Philadelphia Phillies   | PHI       |
+| Zach    | Boston Red Sox          | BOS       |
+| Patrick | New York Yankees        | NYY       |
+| Derek   | Tampa Bay Rays          | TB        |
+| Cody    | Milwaukee Brewers       | MIL       |
+| Josh    | Los Angeles Dodgers     | LAD       |
+| Stephen | Atlanta Braves          | ATL       |
 
 ---
 
@@ -118,7 +130,12 @@ ESPN uses accents and dots our hardcoded names don't (`Joaquín Niemann`, `J.J. 
 - 2×2 grid of golfer tiles, each showing position badge (color-coded by tier), golfer name, score-to-par, and thru info.
 - Banner describes tournament state (pre / live / final).
 
-### Tab 3 — MLB 🔲 NOT YET BUILT
+### Tab 3 — MLB ✅ BUILT
+- One card per owner, sorted by win percentage (best record first).
+- Each card: rank badge · owner name · team name + abbr · draft pts badge.
+- Stats row: W–L record · win % · runs scored (tiebreaker).
+- Banner describes window state (pre / live / final / dev test mode).
+
 ### Tab 4 — LLWS 🔲 NOT YET BUILT
 
 ---
@@ -126,12 +143,13 @@ ESPN uses accents and dots our hardcoded names don't (`Joaquín Niemann`, `J.J. 
 ## File Structure
 
 ```
-index.html                  — entire app: HTML, CSS (<style>), JS (<script>)
-CLAUDE.md                   — this file
-TheLeagueintertitle.png     — wood-panel background image (referenced in CSS)
-league.jpeg                 — "The League" poster (design reference, not used in app)
-League League Teams.rtf     — original owner list
-llws-espn-api-reference.md  — ESPN unofficial API notes for the LLWS
+index.html                      — entire app: HTML, CSS (<style>), JS (<script>)
+CLAUDE.md                       — this file
+TheLeagueintertitle.png         — wood-panel background image (referenced in CSS)
+league.jpeg                     — "The League" poster (design reference, not used in app)
+League League Teams.rtf         — original owner list
+League League MLB TEAMS.rtf     — MLB team assignments
+llws-espn-api-reference.md      — ESPN unofficial API notes for the LLWS
 ```
 
 ---
@@ -159,7 +177,6 @@ llws-espn-api-reference.md  — ESPN unofficial API notes for the LLWS
 
 ## Open Questions / TBD
 
-- [ ] MLB team assignments per owner (being finalized)
 - [ ] LLWS team assignments per owner
 - [ ] Overall tiebreaker rule when two owners have equal total points across all three events
 - [ ] Whether LLWS data is available via ESPN API or requires manual entry fallback (`?admin`)

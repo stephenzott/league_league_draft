@@ -371,6 +371,45 @@
       h1 { font-size: 1.2rem; }
       .draft-table th, .draft-table td { padding: 0.5rem 0.55rem; font-size: 0.8rem; }
     }
+
+    /* ── MLB tab ── */
+    .mlb-cards { display: flex; flex-direction: column; gap: 0.75rem; }
+
+    /* Stats row inside each team card: W-L, win%, runs */
+    .mlb-card-body {
+      display: flex;
+      align-items: center;
+      gap: 2.5rem;
+      padding: 0.8rem 1rem;
+      flex-wrap: wrap;
+    }
+
+    .mlb-stat {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.15rem;
+    }
+
+    .mlb-stat-val {
+      font-size: 1.2rem;
+      font-weight: 800;
+      color: var(--text);
+    }
+
+    .mlb-stat-lbl {
+      font-size: 0.6rem;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--muted);
+    }
+
+    /* "(TB)" abbreviation shown next to team name in card header */
+    .mlb-abbr {
+      font-size: 0.72rem;
+      color: var(--muted);
+      font-weight: 600;
+    }
   </style>
 </head>
 <body>
@@ -396,7 +435,7 @@
 <nav class="tabs-nav">
   <button class="tab-btn active" onclick="showTab('overall', this)">Overall Standings</button>
   <button class="tab-btn" onclick="showTab('open', this)">⛳ The Open</button>
-  <button class="tab-btn tab-disabled">⚾ MLB</button>
+  <button class="tab-btn" onclick="showTab('mlb', this)">⚾ MLB</button>
   <button class="tab-btn tab-disabled">🎯 LLWS</button>
 </nav>
 
@@ -439,6 +478,15 @@
     </div>
   </div>
 
+  <!-- Tab 3: MLB records — Aug 1–14, 2026 -->
+  <div id="tab-mlb" class="tab-panel">
+    <div class="section-label">MLB · Aug 1–14, 2026</div>
+    <div id="mlb-banner" class="open-banner" style="display:none"></div>
+    <div id="mlb-cards" class="mlb-cards">
+      <div style="color:var(--muted); text-align:center; padding:2rem">Loading…</div>
+    </div>
+  </div>
+
 </main>
 
 <script>
@@ -449,14 +497,14 @@
 // Each owner is assigned exactly 4 golfers via snake draft (groups A–H).
 // These assignments are fixed for the tournament and will not change.
 const OWNERS = [
-  { id: 1, name: 'Matt',    golfers: ['Scottie Scheffler', 'Si Woo Kim', 'Shane Lowry', 'Harris English'] },
-  { id: 2, name: 'Keanan',  golfers: ['Xander Schauffele', 'Ludvig Åberg', 'Patrick Reed', 'Alex Fitzpatrick'] },
-  { id: 3, name: 'Zach',    golfers: ['Viktor Hovland', 'Chris Gotterup', 'Joaquin Niemann', 'Patrick Cantlay'] },
-  { id: 4, name: 'Patrick', golfers: ['Jon Rahm', 'Tyrrell Hatton', 'Tom Kim', 'Bryson DeChambeau'] },
-  { id: 5, name: 'Derek',   golfers: ['Matt Fitzpatrick', 'Wyndham Clark', 'Sam Burns', 'JJ Spaun'] },
-  { id: 6, name: 'Cody',    golfers: ['Robert MacIntyre', 'Justin Rose', 'Min Woo Lee', 'Aaron Rai'] },
-  { id: 7, name: 'Josh',    golfers: ['Tommy Fleetwood', 'Collin Morikawa', 'Justin Thomas', 'Brooks Koepka'] },
-  { id: 8, name: 'Stephen', golfers: ['Rory McIlroy', 'Cameron Young', 'Russell Henley', 'Hideki Matsuyama'] },
+  { id: 1, name: 'Matt',    golfers: ['Scottie Scheffler', 'Si Woo Kim', 'Shane Lowry', 'Harris English'],        mlbTeam: { name: 'San Francisco Giants',  abbr: 'SF'  } },
+  { id: 2, name: 'Keanan',  golfers: ['Xander Schauffele', 'Ludvig Åberg', 'Patrick Reed', 'Alex Fitzpatrick'],   mlbTeam: { name: 'Philadelphia Phillies', abbr: 'PHI' } },
+  { id: 3, name: 'Zach',    golfers: ['Viktor Hovland', 'Chris Gotterup', 'Joaquin Niemann', 'Patrick Cantlay'],  mlbTeam: { name: 'Boston Red Sox',        abbr: 'BOS' } },
+  { id: 4, name: 'Patrick', golfers: ['Jon Rahm', 'Tyrrell Hatton', 'Tom Kim', 'Bryson DeChambeau'],              mlbTeam: { name: 'New York Yankees',      abbr: 'NYY' } },
+  { id: 5, name: 'Derek',   golfers: ['Matt Fitzpatrick', 'Wyndham Clark', 'Sam Burns', 'JJ Spaun'],              mlbTeam: { name: 'Tampa Bay Rays',        abbr: 'TB'  } },
+  { id: 6, name: 'Cody',    golfers: ['Robert MacIntyre', 'Justin Rose', 'Min Woo Lee', 'Aaron Rai'],             mlbTeam: { name: 'Milwaukee Brewers',     abbr: 'MIL' } },
+  { id: 7, name: 'Josh',    golfers: ['Tommy Fleetwood', 'Collin Morikawa', 'Justin Thomas', 'Brooks Koepka'],    mlbTeam: { name: 'Los Angeles Dodgers',   abbr: 'LAD' } },
+  { id: 8, name: 'Stephen', golfers: ['Rory McIlroy', 'Cameron Young', 'Russell Henley', 'Hideki Matsuyama'],     mlbTeam: { name: 'Atlanta Braves',        abbr: 'ATL' } },
 ];
 
 // ESPN's unofficial PGA/DP World Tour leaderboard endpoint.
@@ -466,6 +514,14 @@ const ESPN_URL = 'https://site.api.espn.com/apis/site/v2/sports/golf/leaderboard
 const SYNC_MS  = 90_000;   // normal poll interval: 90 seconds
 const LIVE_MS  = 20_000;   // faster poll when golfers are actively on the course
 const LS_KEY   = 'leagueLeague2026_v1';  // localStorage key for caching
+
+// ── MLB constants ──────────────────────────────────────────────────────────────
+// The scoring window: Aug 1–14, 2026. Each owner's team's W-L record over this
+// span determines their draft points (best record → 8 pts, worst → 1 pt).
+const MLB_DATE_START = '20260801';
+const MLB_DATE_END   = '20260814';
+
+const MLB_URL = `https://site.api.espn.com/apis/site/v2/sports/baseball/mlb/scoreboard?dates=${MLB_DATE_START}-${MLB_DATE_END}&limit=200`;
 
 // =============================================================================
 // NAME NORMALIZATION
@@ -505,6 +561,11 @@ let hasLive = false;
 
 let syncTimer  = null;
 let syncPaused = false;
+
+// MLB state — parallel to the golf state above
+let mlbGames       = [];     // processed game objects for the scoring window
+let mlbWindowState = 'pre';  // 'pre', 'active', or 'post' relative to Aug 1-14
+let mlbHasLive     = false;  // true when any MLB game is currently in progress
 
 // =============================================================================
 // UTILITIES
@@ -649,15 +710,51 @@ async function fetchLeaderboard() {
   // Are any golfers actively playing right now (not pre or post their round)?
   hasLive = competitors.some(c => c.status?.type?.state === 'in');
 
-  // Cache the parsed data so a page reload shows something instantly rather than blank.
-  try {
-    localStorage.setItem(LS_KEY, JSON.stringify({
-      leaderboardData,
-      tournamentState,
-      hasLive,
-      updatedAt: Date.now(),
-    }));
-  } catch (_) { /* localStorage quota exceeded — not fatal */ }
+}
+
+// =============================================================================
+// MLB: FETCH GAME RESULTS
+// Pulls all completed MLB games from the scoring window and parses them into
+// a lightweight array of { homeAbbr, awayAbbr, homeScore, awayScore }.
+// =============================================================================
+
+async function fetchMLBGames() {
+  const resp = await fetch(MLB_URL);
+  if (!resp.ok) throw new Error(`ESPN MLB API returned HTTP ${resp.status}`);
+  const data = await resp.json();
+
+  // Determine where we are relative to the Aug 1–14 window.
+  const now = new Date();
+  if (now < new Date('2026-08-01T00:00:00')) {
+    mlbWindowState = 'pre';
+  } else if (now >= new Date('2026-08-15T00:00:00')) {
+    mlbWindowState = 'post';
+  } else {
+    mlbWindowState = 'active';
+  }
+
+  // Flag live games for faster polling, same logic as the golf side.
+  mlbHasLive = (data.events || []).some(
+    e => e.competitions?.[0]?.status?.type?.state === 'in'
+  );
+
+  // Only include completed games — scheduled/in-progress games don't count yet.
+  mlbGames = (data.events || [])
+    .filter(e => {
+      const s = e.competitions?.[0]?.status?.type;
+      return s?.state === 'post' && s?.completed === true;
+    })
+    .map(e => {
+      const comp = e.competitions[0];
+      const home = comp.competitors.find(c => c.homeAway === 'home');
+      const away = comp.competitors.find(c => c.homeAway === 'away');
+      return {
+        homeAbbr:  home.team.abbreviation,
+        awayAbbr:  away.team.abbreviation,
+        homeScore: parseInt(home.score || '0', 10),
+        awayScore: parseInt(away.score || '0', 10),
+      };
+    });
 }
 
 // =============================================================================
@@ -834,36 +931,126 @@ function computeOpenScores() {
 }
 
 // =============================================================================
+// MLB SCORING
+// Tallies each owner's team W-L record over the window and converts it to
+// draft points.  Win percentage is the primary sort; runs scored is the
+// tiebreaker (as specified in the league rules).
+// =============================================================================
+
+function computeMLBScores() {
+  // Seed a stats bucket for each owner's assigned team.
+  const teamStats = {};
+  OWNERS.forEach(o => {
+    teamStats[o.mlbTeam.abbr] = { wins: 0, losses: 0, runsScored: 0 };
+  });
+
+  // Walk every completed game and credit the right team's bucket.
+  // Baseball games can't end in a tie (extra innings), so score > score always
+  // determines the winner unambiguously.
+  mlbGames.forEach(({ homeAbbr, awayAbbr, homeScore, awayScore }) => {
+    const home = teamStats[homeAbbr];
+    const away = teamStats[awayAbbr];
+    if (home) {
+      home.runsScored += homeScore;
+      if (homeScore > awayScore) home.wins++; else home.losses++;
+    }
+    if (away) {
+      away.runsScored += awayScore;
+      if (awayScore > homeScore) away.wins++; else away.losses++;
+    }
+  });
+
+  const scores = OWNERS.map(o => {
+    const s         = teamStats[o.mlbTeam.abbr];
+    const gamesPlayed = s.wins + s.losses;
+    // Win percentage; 0 if no games played yet.
+    const winPct    = gamesPlayed > 0 ? s.wins / gamesPlayed : 0;
+    return {
+      ownerId:    o.id,
+      owner:      o,
+      abbr:       o.mlbTeam.abbr,
+      teamName:   o.mlbTeam.name,
+      wins:       s.wins,
+      losses:     s.losses,
+      runsScored: s.runsScored,
+      winPct,
+      mlbPts:     null,  // filled in after sorting
+      rank:       null,
+    };
+  });
+
+  // Sort descending: best win % first; runs scored breaks ties.
+  scores.sort((a, b) =>
+    b.winPct !== a.winPct
+      ? b.winPct - a.winPct
+      : b.runsScored - a.runsScored
+  );
+
+  // Only assign draft points once games have actually been played.
+  // Before the window opens all records are 0-0, so we show "—" rather than
+  // fake draft points.
+  const anyGames = scores.some(s => s.wins + s.losses > 0);
+  if (anyGames) {
+    scores.forEach((s, i) => {
+      s.mlbPts = 8 - i;
+      s.rank   = i + 1;
+    });
+  }
+
+  return scores;
+}
+
+// =============================================================================
 // RENDERING
 // =============================================================================
 
 // ── Overall Standings Table ───────────────────────────────────────────────────
-// Currently only The Open contributes to total points; MLB and LLWS are "—".
-// When those events are added, total will sum all three.
+// Merges Open + MLB (+ eventually LLWS) into a single ranked table.
+// Owners are re-sorted here by combined total pts independent of each event's
+// own internal ordering.
 
-function renderOverall(ownerScores) {
+function renderOverall(openScores, mlbScores) {
   const tbody = document.getElementById('overall-tbody');
 
-  const rows = ownerScores.map(o => {
-    const r = o.rank;
+  // Build lookup maps so we can join on owner ID.
+  const openByOwner = {};
+  openScores.forEach(o => { openByOwner[o.owner.id] = o; });
+
+  const mlbByOwner = {};
+  mlbScores.forEach(m => { mlbByOwner[m.ownerId] = m; });
+
+  // Compute a combined row for each owner.
+  const combined = OWNERS.map(owner => {
+    const openPts = openByOwner[owner.id]?.openPts ?? null;
+    const mlbPts  = mlbByOwner[owner.id]?.mlbPts  ?? null;
+    const anyPts  = openPts !== null || mlbPts !== null;
+    // Sum only the events that have data; treat null as 0 for arithmetic.
+    const totalPts = anyPts ? (openPts ?? 0) + (mlbPts ?? 0) : null;
+    return { owner, openPts, mlbPts, totalPts };
+  });
+
+  // Sort descending by total; nulls go last.
+  combined.sort((a, b) => {
+    if (a.totalPts === null && b.totalPts === null) return 0;
+    if (a.totalPts === null) return 1;
+    if (b.totalPts === null) return -1;
+    return b.totalPts - a.totalPts;
+  });
+
+  const rows = combined.map((c, i) => {
+    const r       = i + 1;
     const rankCls = r === 1 ? 'rank-gold' : r === 2 ? 'rank-silver' : r === 3 ? 'rank-bronze' : '';
-
-    const openCell  = o.openPts != null
-      ? `<span class="pts-val">${o.openPts}</span>`
-      : `<span class="pts-na">—</span>`;
-
-    // Total is just The Open for now; will add MLB + LLWS later
-    const totalCell = o.openPts != null
-      ? `<span class="pts-val">${o.openPts}</span>`
-      : `<span class="pts-na">—</span>`;
-
     const pickCls = r === 1 ? 'pick-1st' : '';
+
+    const openCell  = c.openPts  != null ? `<span class="pts-val">${c.openPts}</span>`  : `<span class="pts-na">—</span>`;
+    const mlbCell   = c.mlbPts   != null ? `<span class="pts-val">${c.mlbPts}</span>`   : `<span class="pts-na">—</span>`;
+    const totalCell = c.totalPts != null ? `<span class="pts-val">${c.totalPts}</span>` : `<span class="pts-na">—</span>`;
 
     return `<tr>
       <td class="rank-cell ${rankCls}">${r}</td>
-      <td class="owner-cell">${esc(o.owner.name)}</td>
+      <td class="owner-cell">${esc(c.owner.name)}</td>
       <td class="pts-cell">${openCell}</td>
-      <td class="pts-cell"><span class="pts-na">—</span></td>
+      <td class="pts-cell">${mlbCell}</td>
       <td class="pts-cell"><span class="pts-na">—</span></td>
       <td class="pts-cell">${totalCell}</td>
       <td class="pick-cell ${pickCls}">${ordinal(r)}</td>
@@ -957,6 +1144,76 @@ function renderOpen(ownerScores) {
   container.innerHTML = cards;
 }
 
+// ── MLB Team Cards ────────────────────────────────────────────────────────────
+function renderMLB(mlbScores) {
+  const banner = document.getElementById('mlb-banner');
+  const cards  = document.getElementById('mlb-cards');
+
+  // Banner content depends on window state.
+  if (mlbWindowState === 'pre') {
+    banner.style.display = 'block';
+    banner.innerHTML = `<strong>MLB window opens August 1, 2026.</strong> Team assignments are locked in. Records will appear once the window opens.`;
+  } else if (mlbHasLive) {
+    banner.style.display = 'block';
+    banner.innerHTML = `<span class="live-dot">&#9679; LIVE</span> — MLB games in progress. Records update every 20 seconds.`;
+  } else if (mlbWindowState === 'post') {
+    banner.style.display = 'block';
+    banner.innerHTML = `<strong>MLB window closed — Aug 1–14, 2026.</strong> Records are final.`;
+  } else {
+    banner.style.display = 'none';
+  }
+
+  const cardHtml = mlbScores.map(m => {
+    const r       = m.rank;
+    const rankCls = r === 1 ? 'gold-r' : r === 2 ? 'silver-r' : r === 3 ? 'bronze-r' : '';
+    const rankDisp = r != null ? `#${r}` : '—';
+
+    const ptsBadge = m.mlbPts != null
+      ? `<span class="card-pts">${m.mlbPts} pts</span>`
+      : `<span class="card-pts pts-tbd">—</span>`;
+
+    const noGames   = m.wins + m.losses === 0;
+    const recordStr = noGames ? '—' : `${m.wins}–${m.losses}`;
+
+    // Baseball win% convention: "1.000" for perfect, ".750" for others.
+    let winPctStr;
+    if (noGames) {
+      winPctStr = '—';
+    } else if (m.winPct >= 1) {
+      winPctStr = '1.000';
+    } else {
+      winPctStr = '.' + String(Math.round(m.winPct * 1000)).padStart(3, '0');
+    }
+
+    const runsDisp = noGames ? '—' : m.runsScored;
+
+    return `<div class="open-card">
+      <div class="open-card-header">
+        <span class="card-rank ${rankCls}">${rankDisp}</span>
+        <span class="card-owner">${esc(m.owner.name)}</span>
+        <span class="card-sum"><strong>${esc(m.teamName)}</strong> <span class="mlb-abbr">${esc(m.abbr)}</span></span>
+        ${ptsBadge}
+      </div>
+      <div class="mlb-card-body">
+        <div class="mlb-stat">
+          <span class="mlb-stat-val">${esc(recordStr)}</span>
+          <span class="mlb-stat-lbl">W–L</span>
+        </div>
+        <div class="mlb-stat">
+          <span class="mlb-stat-val">${winPctStr}</span>
+          <span class="mlb-stat-lbl">Win %</span>
+        </div>
+        <div class="mlb-stat">
+          <span class="mlb-stat-val">${runsDisp}</span>
+          <span class="mlb-stat-lbl">Runs (TB)</span>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+
+  cards.innerHTML = cardHtml;
+}
+
 // =============================================================================
 // SYNC & POLLING
 // Fetches fresh data from ESPN on a timer.  Polls faster (20s vs 90s) when
@@ -973,33 +1230,53 @@ async function syncNow() {
   if (syncPaused) return;
   setStatus('syncing', '&#8635; Syncing…');
 
-  try {
-    await fetchLeaderboard();
-
-    const scores = computeOpenScores();
-    renderOverall(scores);
-    renderOpen(scores);
-
-    const t = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-
-    if (hasLive) {
-      setStatus('live', '&#9679; Live — updating');
-    } else if (tournamentState === 'post') {
-      setStatus('ok', `&#10003; Final · synced ${t}`);
-    } else {
-      setStatus('ok', `&#10003; Synced ${t}`);
-    }
-  } catch (err) {
-    setStatus('error', '&#10007; Sync error');
-    console.error('Sync failed:', err);
+  // Fetch both data sources in parallel; use allSettled so a failure on one
+  // side doesn't block rendering with whatever data we do have.
+  const results = await Promise.allSettled([fetchLeaderboard(), fetchMLBGames()]);
+  const anyError = results.some(r => r.status === 'rejected');
+  if (anyError) {
+    results.forEach((r, i) => {
+      if (r.status === 'rejected') console.error(['Golf', 'MLB'][i] + ' fetch failed:', r.reason);
+    });
   }
 
-  // Reschedule: faster when live, slower otherwise.
-  // clearInterval + setInterval rather than setTimeout so the interval stays
-  // clean even if syncNow() is called manually (e.g., by the user unpausing).
+  // Compute scores and render regardless — stale data is better than blank.
+  const openScores = computeOpenScores();
+  const mlbScores  = computeMLBScores();
+
+  renderOverall(openScores, mlbScores);
+  renderOpen(openScores);
+  renderMLB(mlbScores);
+
+  // Save everything to localStorage so the next page load feels instant.
+  // We only save when at least one fetch succeeded to avoid caching stale state
+  // over a good cache.
+  if (!results.every(r => r.status === 'rejected')) {
+    try {
+      localStorage.setItem(LS_KEY, JSON.stringify({
+        leaderboardData, tournamentState, hasLive,
+        mlbGames, mlbWindowState, mlbHasLive,
+        updatedAt: Date.now(),
+      }));
+    } catch (_) { /* quota exceeded — not fatal */ }
+  }
+
+  const t      = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  const isLive = hasLive || mlbHasLive;
+
+  if (anyError) {
+    setStatus('error', '&#10007; Sync error');
+  } else if (isLive) {
+    setStatus('live', '&#9679; Live — updating');
+  } else if (tournamentState === 'post') {
+    setStatus('ok', `&#10003; Final · synced ${t}`);
+  } else {
+    setStatus('ok', `&#10003; Synced ${t}`);
+  }
+
   clearInterval(syncTimer);
   if (!syncPaused) {
-    syncTimer = setInterval(syncNow, hasLive ? LIVE_MS : SYNC_MS);
+    syncTimer = setInterval(syncNow, isLive ? LIVE_MS : SYNC_MS);
   }
 }
 
@@ -1021,23 +1298,27 @@ function togglePause() {
 // =============================================================================
 
 (function init() {
-  // Try restoring a previous fetch from cache.  This makes the page feel instant
-  // on reload — the user sees stale-but-real data while fresh data loads.
+  // Restore from localStorage cache so the page shows real data instantly on
+  // reload rather than a blank loading state while the fetches complete.
   try {
     const cached = JSON.parse(localStorage.getItem(LS_KEY) || 'null');
     if (cached?.leaderboardData) {
       leaderboardData = cached.leaderboardData;
       tournamentState = cached.tournamentState || 'pre';
-      hasLive         = cached.hasLive || false;
+      hasLive         = cached.hasLive         || false;
+      mlbGames        = cached.mlbGames        || [];
+      mlbWindowState  = cached.mlbWindowState  || 'pre';
+      mlbHasLive      = cached.mlbHasLive      || false;
 
-      const scores = computeOpenScores();
-      renderOverall(scores);
-      renderOpen(scores);
+      const openScores = computeOpenScores();
+      const mlbScores  = computeMLBScores();
+      renderOverall(openScores, mlbScores);
+      renderOpen(openScores);
+      renderMLB(mlbScores);
       setStatus('syncing', '&#8635; Refreshing…');
     }
   } catch (_) { /* malformed cache — ignore and let live sync populate */ }
 
-  // Fire the first sync immediately, then set up the repeating timer
   syncNow();
 })();
 </script>
