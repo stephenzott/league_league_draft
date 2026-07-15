@@ -83,13 +83,14 @@ ESPN uses accents and dots our hardcoded names don't (`Joaquín Niemann`, `J.J. 
 
 ---
 
-### Event 2 — MLB Runs Scored 🔲 NOT YET BUILT
+### Event 2 — MLB 🔲 NOT YET BUILT
 
-- **Dates / window:** TBD — a defined stretch of the MLB regular season.
-- **How it works:** Each owner is assigned one MLB team. The owner whose team scores the most total runs over the defined window earns the most event points.
-- **Assignments:** TBD.
+- **Dates / window:** August 1–14, 2026.
+- **How it works:** Each owner is assigned one MLB team. Best win-loss record over the window earns 8 draft points; worst record earns 1.
+- **Tiebreaker:** Total runs scored by the team over the window.
+- **Assignments:** TBD — being assigned now.
 - **Live data source:** `site.api.espn.com/apis/site/v2/sports/baseball/mlb/scoreboard`
-- **Notes:** Window dates need to be set.
+- **Notes:** Fetch all games in the window with `?dates=20260801-20260814&limit=200`. For each owner's team, count wins and losses from completed games; sum runs scored for the tiebreaker.
 
 ---
 
@@ -158,7 +159,7 @@ llws-espn-api-reference.md  — ESPN unofficial API notes for the LLWS
 
 ## Open Questions / TBD
 
-- [ ] MLB team assignments per owner + exact date window for the run-scoring metric
+- [ ] MLB team assignments per owner (being finalized)
 - [ ] LLWS team assignments per owner
 - [ ] Overall tiebreaker rule when two owners have equal total points across all three events
 - [ ] Whether LLWS data is available via ESPN API or requires manual entry fallback (`?admin`)
