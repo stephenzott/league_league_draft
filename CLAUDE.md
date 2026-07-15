@@ -1,6 +1,6 @@
 # League League Draft — Fantasy Football Draft Order Tracker
 
-Single-file app (`index.html`) for determining the 2025 fantasy football draft order across three live sporting events. All state lives in `localStorage`. No build step, no dependencies. Deployed via GitHub Pages.
+Single-file app (`index.html`) for determining the 2026 fantasy football draft order across three live sporting events. All state lives in `localStorage`. No build step, no dependencies. Deployed via GitHub Pages at **https://stephenzott.github.io/league_league_draft/**.
 
 ## Concept
 
@@ -25,119 +25,140 @@ Each event awards points based on finish/rank among the 8 owners:
 | 7th    | 2      |
 | 8th    | 1      |
 
-Points from all three events sum to produce the overall draft order. Tiebreaker rules TBD.
+Points from all three events sum to produce the overall draft order.
+
+**Overall tiebreaker:** TBD.
 
 ---
 
-## Fantasy Teams
+## Owners
 
-**8 owners.** Names and IDs to be added once the team list is finalized (will be dropped into the project folder). Format: hardcoded `defaultName` per team ID, not user-editable.
+Eight owners, hardcoded by ID:
+
+| ID | Name    |
+|----|---------|
+| 1  | Matt    |
+| 2  | Keanan  |
+| 3  | Zach    |
+| 4  | Patrick |
+| 5  | Derek   |
+| 6  | Cody    |
+| 7  | Josh    |
+| 8  | Stephen |
 
 ---
 
 ## Events
 
-### Event 1 — The Open Championship (British Open)
-- **Dates:** Starts July 17, 2025 (Royal Portrush)
-- **How it works:** Each owner is assigned specific golfers in the field. Owner standing is determined by their assigned golfers' aggregate performance (exact metric TBD — e.g. cumulative score to par, or best-of-assigned finishing position).
-- **Assignments:** TBD — will be provided.
-- **Live data source:** TBD — likely ESPN golf API. Needs individual golfer scores and leaderboard positions.
-- **Duration:** ~4 days (72-hole stroke play). Completes ~July 20.
+### Event 1 — The Open Championship ✅ BUILT
 
-### Event 2 — MLB Runs Scored
+- **Dates:** July 16–20, 2026
+- **Live data source:** `https://site.api.espn.com/apis/site/v2/sports/golf/leaderboard?league=pga` — ESPN identifies the event by name (`/the open/i`).
+- **Scoring metric:** Sum of finishing positions for each owner's 4 golfers. Lower sum = better (like golf scoring). Owner with lowest sum gets 8 draft points; highest sum gets 1.
+- **Tiebreaker:** Compare all individual round stroke counts across all 4 golfers, sorted ascending. Owner with the lower best single round wins; if still tied, compare next-best round, etc.
+
+#### Golfer assignments (randomly drawn, fixed)
+
+Groups were formed via snake draft of the top 32 pre-tournament odds (picks 1,16,17,32 as one group; 2,15,18,31 as the next; etc.), then randomly assigned to owners.
+
+| Owner   | Golfers |
+|---------|---------|
+| Matt    | Scottie Scheffler, Si Woo Kim, Shane Lowry, Harris English |
+| Keanan  | Xander Schauffele, Ludvig Åberg, Patrick Reed, Alex Fitzpatrick |
+| Zach    | Viktor Hovland, Chris Gotterup, Joaquin Niemann, Patrick Cantlay |
+| Patrick | Jon Rahm, Tyrrell Hatton, Tom Kim, Bryson DeChambeau |
+| Derek   | Matt Fitzpatrick, Wyndham Clark, Sam Burns, JJ Spaun |
+| Cody    | Robert MacIntyre, Justin Rose, Min Woo Lee, Aaron Rai |
+| Josh    | Tommy Fleetwood, Collin Morikawa, Justin Thomas, Brooks Koepka |
+| Stephen | Rory McIlroy, Cameron Young, Russell Henley, Hideki Matsuyama |
+
+#### MC / WD / DQ handling
+- Top 70 plus ties make the cut. MC players are ranked by their score-to-par starting at position (cutCount + 1); ties share the same position number.
+- WD **before** the cut (period < 3): treated identically to MC.
+- WD **after** making the cut (period ≥ 3): placed last among MIF players (position = cutCount).
+- DQ: treated as MC.
+
+#### Name normalization
+ESPN uses accents and dots our hardcoded names don't (`Joaquín Niemann`, `J.J. Spaun`). `normName()` strips NFD accent marks and periods before comparing.
+
+---
+
+### Event 2 — MLB Runs Scored 🔲 NOT YET BUILT
+
 - **Dates / window:** TBD — a defined stretch of the MLB regular season.
-- **How it works:** Each owner is assigned one (or more) MLB team(s). The owner whose assigned team(s) score the most total runs over the defined window earns the most event points.
+- **How it works:** Each owner is assigned one MLB team. The owner whose team scores the most total runs over the defined window earns the most event points.
 - **Assignments:** TBD.
-- **Live data source:** TBD — ESPN MLB API scoreboard.
-- **Notes:** Window dates need to be set; not necessarily concurrent with the other events.
+- **Live data source:** `site.api.espn.com/apis/site/v2/sports/baseball/mlb/scoreboard`
+- **Notes:** Window dates need to be set.
 
-### Event 3 — Little League World Series (LLWS)
-- **Dates:** Typically mid-to-late August (Williamsport, PA).
+---
+
+### Event 3 — Little League World Series (LLWS) 🔲 NOT YET BUILT
+
+- **Dates:** Mid-to-late August 2026 (Williamsport, PA).
 - **How it works:** Each owner is assigned one or more LLWS teams. Final tournament placement determines points.
 - **Assignments:** TBD.
-- **Live data source:** TBD — ESPN Little League API or manual entry (ESPN LLWS coverage is lighter; may need manual fallback).
-- **Notes:** Latest of the three events chronologically.
+- **Live data source:** `site.api.espn.com/apis/site/v2/sports/baseball/llb/scoreboard` — confirmed working, see `llws-espn-api-reference.md` for full API notes.
+- **Notes:** No dedicated bracket endpoint; bracket structure must be inferred from game names/notes.
 
 ---
 
 ## Tab Structure
 
-Four tabs total:
-
-### Tab 1 — Overall Standings (main/default tab)
+### Tab 1 — Overall Standings ✅ BUILT
 - Ranked table of all 8 owners by total points across all three events.
-- Columns: Rank · Owner · Open Points · MLB Points · LLWS Points · Total Points · Draft Pick #.
-- Derived draft pick: 1st overall pick → highest total points. 8th pick → lowest total points.
-- In-progress events show live/provisional points. Not-yet-started events show `—`.
+- Columns: Rank · Owner · The Open · MLB · LLWS · Total Pts · Draft Pick.
+- MLB and LLWS show `—` until those events are built.
+- Draft pick = rank (most total points picks 1st).
 
-### Tab 2 — The Open
-- Live leaderboard of each owner's assigned golfer(s) and their current tournament standing.
-- Shows provisional event-points each owner would earn at the current moment.
-- Ranked by current owner standing in this event.
+### Tab 2 — The Open ✅ BUILT
+- One card per owner, sorted by current position sum (lower = better).
+- Each card: rank badge · owner name · sum of positions · draft pts badge.
+- 2×2 grid of golfer tiles, each showing position badge (color-coded by tier), golfer name, score-to-par, and thru info.
+- Banner describes tournament state (pre / live / final).
 
-### Tab 3 — MLB Runs
-- Shows each owner's assigned MLB team(s) and total runs scored over the defined window.
-- Ranked by runs scored; translates to provisional event-points.
-
-### Tab 4 — Little League World Series
-- Shows each owner's assigned LLWS team(s) and tournament progress/finish.
-- Ranked by finish; translates to event-points.
+### Tab 3 — MLB 🔲 NOT YET BUILT
+### Tab 4 — LLWS 🔲 NOT YET BUILT
 
 ---
 
 ## File Structure
 
 ```
-index.html        — entire app: HTML, CSS (<style>), JS (<script>)
-CLAUDE.md         — this file
-league.jpeg       — design reference image ("The League" poster)
+index.html                  — entire app: HTML, CSS (<style>), JS (<script>)
+CLAUDE.md                   — this file
+TheLeagueintertitle.png     — wood-panel background image (referenced in CSS)
+league.jpeg                 — "The League" poster (design reference, not used in app)
+League League Teams.rtf     — original owner list
+llws-espn-api-reference.md  — ESPN unofficial API notes for the LLWS
 ```
-
-Assignment reference files (to be added):
-- Owner/team list
-- Per-event competitor assignments
 
 ---
 
 ## Technical Approach
 
-Mirrors the world-cup-draft architecture (`/Users/stephenzott/Documents/world-cup-draft/index.html`):
-
 - **Single `index.html`** — no build toolchain, no npm, no frameworks.
-- **`localStorage`** for persisting API-fetched and manually-entered state between page loads.
-- **Live API sync** on a polling interval (e.g. 90 seconds) during active events, with a visible sync status pill.
-- **Manual entry fallback** (especially for LLWS) exposed via `?admin` query param; public view is read-only.
-
-### Likely API sources (to be confirmed)
-- The Open: `site.api.espn.com/apis/site/v2/sports/golf/` leaderboard endpoint
-- MLB: `site.api.espn.com/apis/site/v2/sports/baseball/mlb/scoreboard`
-- LLWS: `site.api.espn.com/apis/site/v2/sports/baseball/little-league-world-series/scoreboard` (coverage TBD)
+- **`localStorage` key:** `leagueLeague2026_v1` — caches the last successful ESPN fetch so page reloads show data instantly.
+- **Polling:** 90s normally; drops to 20s when at least one golfer is actively playing holes (`hasLive = true`). Pause/resume button in the header.
+- **Sync pill:** shows `Syncing` / `Live` / `Synced HH:MM` / `Error` states.
 
 ---
 
 ## Visual Design
 
-Inspired by "The League" TV show promo poster (`league.jpeg`):
-
-- **Background:** Near-black (`#0a0a0f` or similar deep dark)
-- **Primary accent:** Bold red (`#cc0000` or `#e31c23`) — used for borders, active tab underlines, rank highlights
-- **Secondary accent:** Gold/bronze (`#c9a84c` or similar warm gold) — used for #1 rank, champion/winner highlights, trophy imagery
-- **Title text:** White, bold, uppercase with a red vertical bar motif echoing the show's logo
-- **Surface/card backgrounds:** Very dark gray (`#1a1a22` or similar) to layer above the page background
-- **Muted text:** Mid-gray (`#888888`)
-- **Overall feel:** Dramatic, cinematic, stadium-atmosphere — fog/glow effects optional via CSS box-shadow or gradient overlays
-
-Tab nav, table structure, sync pill, and responsive breakpoints follow the same patterns as world-cup-draft but reskinned to this dark/red/gold palette.
+- **Background:** `TheLeagueintertitle.png` — wood-panel from the show's intertitle card, `background-size: cover; background-attachment: fixed`.
+- **Cards/tables:** Dark warm-brown (`rgba(22,16,10,0.95)`) so they're readable against the wood but tonally matched.
+- **Header/tabs:** Slightly transparent dark (`rgba(14,9,4,0.92)`) with `backdrop-filter: blur(2px)`.
+- **Accent:** Red `#cc0000` — tab underlines, banner left border, draft pts badges.
+- **Gold:** `#c9a84c` — #1 rank, points values, section labels.
+- **Text:** Warm cream `#f5f0e8`; muted warm gray-brown `#9a8870`.
+- **Title motif:** Red vertical bar left of "LEAGUE LEAGUE DRAFT" (mirrors the show's logo).
 
 ---
 
 ## Open Questions / TBD
 
-- [ ] 8 owner names and IDs
-- [ ] Golfer assignments per owner for The Open
 - [ ] MLB team assignments per owner + exact date window for the run-scoring metric
 - [ ] LLWS team assignments per owner
-- [ ] Tiebreaker rule when two owners have equal total points
-- [ ] Whether LLWS data is available via ESPN API or requires manual entry
-- [ ] Exact metric for The Open event (best single golfer per owner? aggregate of all assigned golfers?)
-- [ ] Whether any event awards partial/provisional points mid-event vs. only on completion
+- [ ] Overall tiebreaker rule when two owners have equal total points across all three events
+- [ ] Whether LLWS data is available via ESPN API or requires manual entry fallback (`?admin`)
