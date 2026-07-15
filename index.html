@@ -1,0 +1,1045 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>League League Draft 2026</title>
+  <style>
+    /* ── Design tokens — warm wood palette matching TheLeagueintertitle.png ── */
+    :root {
+      --surface:  #16100a;   /* very dark warm brown — card/table backgrounds */
+      --surface2: #1e160d;   /* slightly lighter warm dark — table headers, card headers */
+      --border:   #4a3820;   /* warm brown border */
+      --accent:   #cc0000;   /* red — active tabs, highlights */
+      --gold:     #c9a84c;   /* warm gold — #1 rank, pts values */
+      --silver:   #b0a898;   /* warm silver */
+      --bronze:   #cd7f32;   /* bronze */
+      --text:     #f5f0e8;   /* warm cream — body text */
+      --muted:    #9a8870;   /* warm gray-brown — secondary text */
+      --green:    #2db88a;
+      --red-dim:  #883333;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      /* Wood panel background from the show's intertitle card */
+      background-image: url('TheLeagueintertitle.png');
+      background-size: cover;
+      background-attachment: fixed;
+      background-position: center top;
+      background-color: #c8a060; /* warm amber fallback while image loads */
+      color: var(--text);
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      min-height: 100vh;
+    }
+
+    /* ── Header ── */
+    header {
+      background: rgba(14, 9, 4, 0.92);  /* dark warm brown, slightly transparent so wood peeks through */
+      border-bottom: 3px solid var(--accent);
+      padding: 1rem 1.5rem;
+      backdrop-filter: blur(2px);
+      -webkit-backdrop-filter: blur(2px);
+    }
+
+    .header-inner {
+      max-width: 1100px;
+      margin: 0 auto;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+      flex-wrap: wrap;
+    }
+
+    .title-block {
+      display: flex;
+      align-items: center;
+      gap: 0.8rem;
+    }
+
+    /* Red vertical bar — echoes "The League" logo motif */
+    .title-bar {
+      width: 5px;
+      height: 2.9rem;
+      background: var(--accent);
+      border-radius: 2px;
+      flex-shrink: 0;
+    }
+
+    h1 {
+      font-size: 1.5rem;
+      font-weight: 800;
+      letter-spacing: 0.07em;
+      text-transform: uppercase;
+      color: #fff;
+      line-height: 1.15;
+    }
+
+    .header-sub {
+      font-size: 0.68rem;
+      color: var(--muted);
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      margin-top: 0.15rem;
+    }
+
+    .sync-area {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    /* Pill that shows sync / live / error state */
+    .sync-pill {
+      font-size: 0.7rem;
+      font-weight: 600;
+      padding: 0.28rem 0.75rem;
+      border-radius: 999px;
+      white-space: nowrap;
+      transition: background 0.3s, color 0.3s;
+    }
+    .sync-ok      { background: #1a3a1a; color: #5c5; border: 1px solid #2a5a2a; }
+    .sync-live    { background: #3a1212; color: #f55; border: 1px solid #7a2222; }
+    .sync-syncing { background: #1a253a; color: #89b; border: 1px solid #2a4060; }
+    .sync-error   { background: #3a1a1a; color: #f88; border: 1px solid #6a2a2a; }
+
+    .pause-btn {
+      background: rgba(30, 22, 13, 0.85);
+      border: 1px solid var(--border);
+      color: var(--muted);
+      font-size: 0.68rem;
+      padding: 0.26rem 0.6rem;
+      border-radius: 4px;
+      cursor: pointer;
+      font-family: inherit;
+    }
+    .pause-btn:hover { color: var(--text); border-color: var(--muted); }
+
+    /* ── Tab navigation ── */
+    .tabs-nav {
+      background: rgba(14, 9, 4, 0.90);
+      backdrop-filter: blur(2px);
+      -webkit-backdrop-filter: blur(2px);
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      padding: 0 1.5rem;
+      overflow-x: auto;
+    }
+
+    .tab-btn {
+      background: none;
+      border: none;
+      border-bottom: 3px solid transparent;
+      color: var(--muted);
+      font-family: inherit;
+      font-size: 0.75rem;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      padding: 0.7rem 1.2rem;
+      cursor: pointer;
+      margin-bottom: -1px;
+      transition: color 0.15s, border-color 0.15s;
+      white-space: nowrap;
+    }
+    .tab-btn:hover:not(.tab-disabled) { color: var(--text); }
+    .tab-btn.active { color: var(--accent); border-bottom-color: var(--accent); }
+    .tab-btn.tab-disabled { cursor: not-allowed; opacity: 0.35; }
+
+    .tab-panel { display: none; }
+    .tab-panel.active { display: block; }
+
+    /* ── Page container ── */
+    .container {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 1.5rem;
+    }
+
+    .section-label {
+      font-size: 0.65rem;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      color: var(--gold);         /* gold pops nicely against the wood */
+      font-weight: 700;
+      margin-bottom: 1rem;
+      padding-bottom: 0.4rem;
+      border-bottom: 1px solid var(--border);
+      text-shadow: 0 1px 4px rgba(0,0,0,0.6);
+    }
+
+    /* ── Overall standings table ── */
+    .draft-table {
+      width: 100%;
+      border-collapse: collapse;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      overflow: hidden;
+    }
+
+    .draft-table th {
+      background: rgba(30, 22, 13, 0.98);
+      padding: 0.55rem 0.9rem;
+      text-align: left;
+      font-size: 0.63rem;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--muted);
+      font-weight: 700;
+      border-bottom: 1px solid var(--border);
+    }
+    .draft-table th.th-c { text-align: center; }
+
+    .draft-table td {
+      padding: 0.7rem 0.9rem;
+      border-bottom: 1px solid var(--border);
+      font-size: 0.88rem;
+      vertical-align: middle;
+      background: rgba(22, 16, 10, 0.95);
+    }
+    .draft-table tr:last-child td { border-bottom: none; }
+    .draft-table tr:hover td { background: rgba(30, 22, 13, 0.98); }
+
+    .rank-cell {
+      font-weight: 800;
+      font-size: 1rem;
+      text-align: center;
+      width: 2.4rem;
+      color: var(--muted);
+    }
+    .rank-gold   { color: var(--gold); }
+    .rank-silver { color: var(--silver); }
+    .rank-bronze { color: var(--bronze); }
+
+    .owner-cell { font-weight: 600; }
+
+    .pts-cell { text-align: center; }
+
+    /* A points value with gold highlight */
+    .pts-val  { font-weight: 700; color: var(--gold); }
+    .pts-na   { color: var(--muted); }
+
+    .pick-cell { text-align: center; font-weight: 700; font-size: 0.82rem; }
+    .pick-1st  { color: var(--gold); }
+
+    /* ── Open tab: status banner ── */
+    .open-banner {
+      background: rgba(22, 16, 10, 0.95);
+      border: 1px solid var(--border);
+      border-left: 4px solid var(--accent);
+      border-radius: 6px;
+      padding: 0.7rem 1rem;
+      margin-bottom: 1.25rem;
+      font-size: 0.8rem;
+      color: var(--muted);
+      line-height: 1.5;
+    }
+    .open-banner strong { color: var(--text); }
+    .live-dot { color: var(--accent); }
+
+    /* ── Open tab: owner cards ── */
+    .open-cards {
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+    }
+
+    .open-card {
+      background: rgba(22, 16, 10, 0.95);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      overflow: hidden;
+      transition: border-color 0.2s;
+    }
+    .open-card:hover { border-color: #7a5a30; }
+
+    .open-card-header {
+      display: flex;
+      align-items: center;
+      gap: 0.7rem;
+      padding: 0.6rem 1rem;
+      background: rgba(30, 22, 13, 0.98);
+      border-bottom: 1px solid var(--border);
+      flex-wrap: wrap;
+    }
+
+    .card-rank {
+      font-size: 0.85rem;
+      font-weight: 800;
+      min-width: 1.6rem;
+      color: var(--muted);
+    }
+    .card-rank.gold-r   { color: var(--gold); }
+    .card-rank.silver-r { color: var(--silver); }
+    .card-rank.bronze-r { color: var(--bronze); }
+
+    .card-owner { font-weight: 700; font-size: 0.95rem; flex: 1; }
+
+    .card-sum {
+      font-size: 0.76rem;
+      color: var(--muted);
+    }
+    .card-sum strong { color: var(--text); font-size: 0.85rem; }
+
+    .card-pts {
+      font-size: 0.68rem;
+      font-weight: 700;
+      padding: 0.18rem 0.55rem;
+      border-radius: 4px;
+      white-space: nowrap;
+      background: var(--accent);
+      color: #fff;
+    }
+    .card-pts.pts-tbd { background: var(--border); color: var(--muted); }
+
+    /* 2×2 grid of golfer tiles inside each card */
+    .golfer-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+    }
+
+    .golfer-tile {
+      display: flex;
+      align-items: center;
+      gap: 0.65rem;
+      padding: 0.55rem 1rem;
+      border-right: 1px solid var(--border);
+      border-bottom: 1px solid var(--border);
+    }
+    /* Right column: no right border */
+    .golfer-tile:nth-child(2n) { border-right: none; }
+    /* Bottom row: no bottom border */
+    .golfer-tile:nth-last-child(-n+2) { border-bottom: none; }
+
+    /* Position badge — the big number/status shown on each golfer tile */
+    .pos-badge {
+      font-size: 0.78rem;
+      font-weight: 800;
+      min-width: 2.8rem;
+      text-align: center;
+      padding: 0.18rem 0.3rem;
+      border-radius: 4px;
+      flex-shrink: 0;
+      letter-spacing: 0.02em;
+    }
+    /* Coloring based on leaderboard position */
+    .pos-top5   { background: #0e3020; color: #3ecf90; }       /* top 5: bright green */
+    .pos-top25  { background: #0e2018; color: #58a878; }       /* 6-25: softer green */
+    .pos-field  { background: #2a1e10; color: var(--muted); }  /* 26+: warm dark */
+    .pos-mc     { background: #2a1010; color: #a05050; }       /* MC/WD: dim red */
+    .pos-none   { background: #2a1e10; color: #4a3820; }       /* not started: very dim warm */
+
+    .golfer-info { flex: 1; min-width: 0; }
+
+    .golfer-name {
+      font-size: 0.82rem;
+      font-weight: 600;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .golfer-meta {
+      font-size: 0.68rem;
+      color: var(--muted);
+      margin-top: 0.1rem;
+    }
+
+    /* Score-to-par coloring: under = green, over = red, even = gray */
+    .sc-under { color: var(--green); }
+    .sc-over  { color: #e05555; }
+    .sc-even  { color: var(--muted); }
+
+    /* ── Responsive breakpoints ── */
+    @media (max-width: 640px) {
+      .header-inner { flex-direction: column; align-items: flex-start; gap: 0.6rem; }
+      .container { padding: 0.75rem; }
+      .tabs-nav { padding: 0 0.25rem; }
+      .tab-btn { padding: 0.6rem 0.75rem; font-size: 0.7rem; }
+
+      /* Collapse 2×2 golfer grid to 1 column on small screens */
+      .golfer-grid { grid-template-columns: 1fr; }
+      .golfer-tile { border-right: none; }
+      /* With 1 column the last row is just the last child */
+      .golfer-tile:nth-last-child(-n+2) { border-bottom: 1px solid var(--border); }
+      .golfer-tile:last-child { border-bottom: none; }
+    }
+
+    @media (max-width: 480px) {
+      h1 { font-size: 1.2rem; }
+      .draft-table th, .draft-table td { padding: 0.5rem 0.55rem; font-size: 0.8rem; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ── Header ────────────────────────────────────────────────────────────── -->
+<header>
+  <div class="header-inner">
+    <div class="title-block">
+      <div class="title-bar"></div>
+      <div>
+        <h1>League League Draft</h1>
+        <div class="header-sub">2026 Fantasy Football · Draft Order Tracker</div>
+      </div>
+    </div>
+    <div class="sync-area">
+      <span id="sync-status" class="sync-pill sync-syncing">&#8635; Connecting…</span>
+      <button class="pause-btn" id="pause-btn" onclick="togglePause()">Pause</button>
+    </div>
+  </div>
+</header>
+
+<!-- ── Tab navigation ────────────────────────────────────────────────────── -->
+<nav class="tabs-nav">
+  <button class="tab-btn active" onclick="showTab('overall', this)">Overall Standings</button>
+  <button class="tab-btn" onclick="showTab('open', this)">⛳ The Open</button>
+  <button class="tab-btn tab-disabled">⚾ MLB</button>
+  <button class="tab-btn tab-disabled">🎯 LLWS</button>
+</nav>
+
+<!-- ── Main content ───────────────────────────────────────────────────────── -->
+<main class="container">
+
+  <!-- Tab 1: Overall draft order -->
+  <div id="tab-overall" class="tab-panel active">
+    <div class="section-label">Draft Order — Overall Standings</div>
+    <div style="overflow-x: auto">
+      <table class="draft-table">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Owner</th>
+            <th class="th-c">The Open</th>
+            <th class="th-c">MLB</th>
+            <th class="th-c">LLWS</th>
+            <th class="th-c">Total Pts</th>
+            <th class="th-c">Draft Pick</th>
+          </tr>
+        </thead>
+        <tbody id="overall-tbody">
+          <tr>
+            <td colspan="7" style="text-align:center; color:var(--muted); padding:2rem">
+              Loading…
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Tab 2: The Open Championship leaderboard -->
+  <div id="tab-open" class="tab-panel">
+    <div class="section-label">The Open Championship · 2026</div>
+    <div id="open-banner" class="open-banner" style="display:none"></div>
+    <div id="open-cards" class="open-cards">
+      <div style="color:var(--muted); text-align:center; padding:2rem">Loading…</div>
+    </div>
+  </div>
+
+</main>
+
+<script>
+// =============================================================================
+// CONSTANTS — hardcoded golfer assignments from the pre-tournament random draw
+// =============================================================================
+
+// Each owner is assigned exactly 4 golfers via snake draft (groups A–H).
+// These assignments are fixed for the tournament and will not change.
+const OWNERS = [
+  { id: 1, name: 'Matt',    golfers: ['Scottie Scheffler', 'Si Woo Kim', 'Shane Lowry', 'Harris English'] },
+  { id: 2, name: 'Keanan',  golfers: ['Xander Schauffele', 'Ludvig Åberg', 'Patrick Reed', 'Alex Fitzpatrick'] },
+  { id: 3, name: 'Zach',    golfers: ['Viktor Hovland', 'Chris Gotterup', 'Joaquin Niemann', 'Patrick Cantlay'] },
+  { id: 4, name: 'Patrick', golfers: ['Jon Rahm', 'Tyrrell Hatton', 'Tom Kim', 'Bryson DeChambeau'] },
+  { id: 5, name: 'Derek',   golfers: ['Matt Fitzpatrick', 'Wyndham Clark', 'Sam Burns', 'JJ Spaun'] },
+  { id: 6, name: 'Cody',    golfers: ['Robert MacIntyre', 'Justin Rose', 'Min Woo Lee', 'Aaron Rai'] },
+  { id: 7, name: 'Josh',    golfers: ['Tommy Fleetwood', 'Collin Morikawa', 'Justin Thomas', 'Brooks Koepka'] },
+  { id: 8, name: 'Stephen', golfers: ['Rory McIlroy', 'Cameron Young', 'Russell Henley', 'Hideki Matsuyama'] },
+];
+
+// ESPN's unofficial PGA/DP World Tour leaderboard endpoint.
+// Returns all active tournaments including The Open Championship.
+const ESPN_URL = 'https://site.api.espn.com/apis/site/v2/sports/golf/leaderboard?league=pga';
+
+const SYNC_MS  = 90_000;   // normal poll interval: 90 seconds
+const LIVE_MS  = 20_000;   // faster poll when golfers are actively on the course
+const LS_KEY   = 'leagueLeague2026_v1';  // localStorage key for caching
+
+// =============================================================================
+// NAME NORMALIZATION
+// ESPN uses characters we might not match exactly, e.g.:
+//   "Joaquín Niemann"  vs our hardcoded  "Joaquin Niemann"  (accent)
+//   "J.J. Spaun"       vs our hardcoded  "JJ Spaun"         (periods)
+// Stripping accents and dots before comparing makes lookup robust.
+// =============================================================================
+
+function normName(s) {
+  return String(s)
+    .toLowerCase()
+    .normalize('NFD')                    // decompose é → e + combining accent
+    .replace(/[̀-ͯ]/g, '')     // remove the now-separate accent characters
+    .replace(/\./g, '')                  // "J.J." → "JJ"
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+// =============================================================================
+// APPLICATION STATE
+// =============================================================================
+
+// leaderboardData maps normalized golfer name → parsed result object.
+// Populated by fetchLeaderboard(); empty object = no data yet.
+let leaderboardData = {};
+
+// Overall tournament phase. Determines what the UI shows.
+// 'pre'    = tournament hasn't started (no scores)
+// 'active' = rounds in progress or between rounds
+// 'post'   = tournament officially complete
+let tournamentState = 'pre';
+
+// True when at least one golfer is currently playing holes.
+// Used to switch to faster poll interval during live rounds.
+let hasLive = false;
+
+let syncTimer  = null;
+let syncPaused = false;
+
+// =============================================================================
+// UTILITIES
+// =============================================================================
+
+// Escape HTML special characters to prevent XSS when inserting into innerHTML.
+function esc(s) {
+  return String(s)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
+// Ordinal suffix: 1 → "1st", 2 → "2nd", 3 → "3rd", 4 → "4th", etc.
+function ordinal(n) {
+  const s = ['th', 'st', 'nd', 'rd'];
+  const v = n % 100;
+  return n + (s[(v - 20) % 10] || s[v] || s[0]);
+}
+
+// =============================================================================
+// TAB NAVIGATION
+// Standard pattern: show one tab panel at a time, highlight active tab button.
+// =============================================================================
+
+function showTab(id, btn) {
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('tab-' + id).classList.add('active');
+  btn.classList.add('active');
+}
+
+// =============================================================================
+// ESPN API: FETCH AND PARSE LEADERBOARD DATA
+// =============================================================================
+
+// Parse one ESPN "competitor" object (a single golfer's entry) into our format.
+// ESPN's field names are not always obvious — comments explain what each is.
+function parseCompetitor(c) {
+  const athlete     = c.athlete || {};
+  const statusType  = c.status?.type?.name || 'STATUS_SCHEDULED';
+  const stateStr    = c.status?.type?.state || 'pre';  // 'pre', 'in', or 'post'
+
+  // Status flags that affect how we assign position numbers
+  const isMC = statusType === 'STATUS_CUT';         // missed the cut
+  const isWD = statusType === 'STATUS_WD' ||
+               statusType === 'STATUS_WITHDRAWN';   // withdrew from the tournament
+  const isDQ = statusType === 'STATUS_DQ';          // disqualified
+
+  // The position string ESPN shows on its leaderboard ("T5", "3", "MC", "WD", "-")
+  const displayPosRaw = c.status?.position?.displayName || '—';
+
+  // For golfers who made the cut (and aren't WD/DQ), parse the numeric position.
+  // "T5" (tied for 5th) → 5.  "3" → 3.  "-" (not yet teed off) → null.
+  // All golfers tied at T5 share position 5 — that's intentional (user's rules).
+  let position = null;
+  if (!isMC && !isWD && !isDQ) {
+    const m = displayPosRaw.match(/^T?(\d+)$/);
+    if (m) position = parseInt(m[1], 10);
+  }
+
+  // Score to par for the whole tournament (negative = under par = good).
+  // ESPN stores this in statistics[].  "value" is the numeric form; "displayValue"
+  // is the display string like "-5", "E", "+3".
+  const scoreStat   = (c.statistics || []).find(s => s.name === 'scoreToPar');
+  const scoreToPar  = scoreStat != null ? scoreStat.value : null;
+  const scoreDisplay = c.score?.displayValue || '—';
+
+  // Per-round stroke counts live in the linescores array.
+  // Each linescore covers one round; the "value" field is total strokes (e.g. 68).
+  // Pre-tournament linescores only have tee time info, no value — we filter those out.
+  const rounds = (c.linescores || [])
+    .filter(ls => typeof ls.value === 'number')
+    .sort((a, b) => a.period - b.period)  // ensure chronological order
+    .map(ls => ls.value);
+
+  // Which round the golfer is currently playing or has most recently completed (1–4)
+  const period = c.status?.period || 1;
+
+  // Human-readable progress within the current round.
+  // "Thru 12" = completed 12 holes today; "F" = finished the round.
+  const thru = c.status?.thru || 0;
+  let thruDisplay;
+  if (stateStr === 'pre') {
+    // Before the round starts, ESPN stores the tee time as a string in .detail
+    thruDisplay = c.status?.detail || '—';
+  } else if (thru >= 18 || stateStr === 'post') {
+    thruDisplay = 'F';
+  } else if (thru > 0) {
+    thruDisplay = `Thru ${thru}`;
+  } else {
+    thruDisplay = '—';
+  }
+
+  return {
+    displayName:  athlete.displayName || '',
+    position,
+    displayPos:   isMC ? 'MC' : isWD ? 'WD' : isDQ ? 'DQ' : (position !== null ? displayPosRaw : '—'),
+    scoreToPar,
+    scoreDisplay,
+    rounds,
+    isMC,
+    isWD,
+    isDQ,
+    period,
+    thruDisplay,
+    stateStr,
+  };
+}
+
+async function fetchLeaderboard() {
+  const resp = await fetch(ESPN_URL);
+  if (!resp.ok) throw new Error(`ESPN API returned HTTP ${resp.status}`);
+  const data = await resp.json();
+
+  const events = data.events || [];
+
+  // ESPN returns multiple simultaneous tournaments.
+  // Find The Open Championship specifically; fall back to first event if not found.
+  const openEvent = events.find(e => /the open/i.test(e.name)) || events[0];
+  if (!openEvent) return;
+
+  const competition = openEvent.competitions?.[0];
+  if (!competition) return;
+
+  // Determine the overall phase of the tournament from the event-level status.
+  const evtState = openEvent.status?.type?.state || 'pre';
+  tournamentState = evtState === 'pre' ? 'pre' : evtState === 'post' ? 'post' : 'active';
+
+  // Parse every golfer in the field into our internal format.
+  const competitors = competition.competitors || [];
+  const newData     = {};
+  competitors.forEach(c => {
+    const parsed = parseCompetitor(c);
+    const norm   = normName(parsed.displayName);
+    if (norm) newData[norm] = parsed;
+  });
+
+  leaderboardData = newData;
+
+  // Are any golfers actively playing right now (not pre or post their round)?
+  hasLive = competitors.some(c => c.status?.type?.state === 'in');
+
+  // Cache the parsed data so a page reload shows something instantly rather than blank.
+  try {
+    localStorage.setItem(LS_KEY, JSON.stringify({
+      leaderboardData,
+      tournamentState,
+      hasLive,
+      updatedAt: Date.now(),
+    }));
+  } catch (_) { /* localStorage quota exceeded — not fatal */ }
+}
+
+// =============================================================================
+// SCORING
+// Compute each owner's Open Championship score and the resulting draft points.
+//
+// Scoring rule (from the league):
+//   - Each owner has 4 golfers. Sum their finishing positions in the full field.
+//     Lower sum = better (like golf scoring itself).
+//   - Top 70 plus ties make the cut. Golfers who miss the cut are placed at
+//     position (cutCount+1) and ranked among themselves by score-to-par.
+//   - WD before the cut → treated as MC.
+//   - WD after making the cut → placed last among MIF (position = cutCount).
+//   - Draft points: best sum → 8 pts, second → 7, …, worst → 1 pt.
+//   - Tiebreaker: compare all individual round scores sorted ascending
+//     (best single round wins; if still tied, compare next-best round, etc.)
+// =============================================================================
+
+function computeOpenScores() {
+  const allGolfers = Object.values(leaderboardData);
+
+  // anyPlayed: at least one golfer in the field has a position or missed the cut.
+  // If false, the tournament hasn't started and we show all dashes.
+  const anyPlayed = allGolfers.some(g => g.position !== null || g.isMC);
+
+  // ── Step 1: Determine the cut line ───────────────────────────────────────
+  // MIF = "made it through the cut" = has a numeric position and isn't WD
+  // before round 3 (round 3 = the first post-cut round, period >= 3).
+  const mifGolfers = allGolfers.filter(g =>
+    !g.isMC && !g.isDQ &&
+    !(g.isWD && g.period < 3) &&
+    g.position !== null
+  );
+
+  // cutCount = number of players who made the cut.
+  // In practice this is 70 + however many share the cut-line score (ties).
+  // We default to 70 before the cut is actually applied.
+  const cutCount = mifGolfers.length > 0 ? mifGolfers.length : 70;
+
+  // ── Step 2: Assign positions to MC / WD-before-cut players ───────────────
+  // Collect everyone who missed the cut (STATUS_CUT, DQ, or WD in rounds 1-2).
+  const mcCandidates = allGolfers.filter(g =>
+    g.isMC || g.isDQ || (g.isWD && g.period < 3)
+  );
+
+  // Sort MC players by score-to-par ascending: the best MC score (lowest / most
+  // negative) gets the lowest position number, i.e., is least penalized.
+  const sortedMC = [...mcCandidates].sort((a, b) => {
+    if (a.scoreToPar !== null && b.scoreToPar !== null) return a.scoreToPar - b.scoreToPar;
+    if (a.scoreToPar !== null) return -1;
+    if (b.scoreToPar !== null) return 1;
+    return 0;
+  });
+
+  // Assign position numbers starting at cutCount+1.
+  // Players with the same score-to-par receive the same (tied) position.
+  const mcPosMap = {};   // displayName → numeric position
+  let nextMCPos  = cutCount + 1;
+  sortedMC.forEach((g, i) => {
+    const prevScore = i > 0 ? sortedMC[i - 1].scoreToPar : undefined;
+    if (i > 0 && g.scoreToPar !== null && g.scoreToPar === prevScore) {
+      // Tie: share the previous golfer's position number
+      mcPosMap[g.displayName] = mcPosMap[sortedMC[i - 1].displayName];
+    } else {
+      mcPosMap[g.displayName] = nextMCPos;
+    }
+    nextMCPos++;
+  });
+
+  // WD *after* making the cut → goes last among MIF players.
+  // "If someone makes the cut and withdraws, put them last among those that made the cut."
+  allGolfers
+    .filter(g => g.isWD && g.period >= 3)
+    .forEach(g => { mcPosMap[g.displayName] = cutCount; });
+
+  // ── Step 3: Look up final position for each of our 32 assigned golfers ───
+  function getGolferResult(name) {
+    const norm = normName(name);
+    const g    = leaderboardData[norm];
+
+    if (!g) {
+      // Golfer not found in ESPN data — either not in the field or WD before play began
+      return { position: null, displayPos: '—', scoreDisplay: '—', rounds: [], isMC: false };
+    }
+
+    // MC / DQ / WD before cut: use the position assigned in step 2
+    if (g.isMC || g.isDQ || (g.isWD && g.period < 3)) {
+      return {
+        position:     mcPosMap[g.displayName] ?? null,
+        displayPos:   g.displayPos,
+        scoreDisplay: g.scoreDisplay,
+        isMC:         true,
+        rounds:       g.rounds,
+        thruDisplay:  g.thruDisplay,
+      };
+    }
+
+    // WD after making the cut: also in the mcPosMap (set to cutCount above)
+    if (g.isWD && g.period >= 3) {
+      return {
+        position:     mcPosMap[g.displayName] ?? cutCount,
+        displayPos:   'WD',
+        scoreDisplay: g.scoreDisplay,
+        isMC:         false,
+        isWD:         true,
+        rounds:       g.rounds,
+        thruDisplay:  g.thruDisplay,
+      };
+    }
+
+    // Normal MIF player
+    return {
+      position:     g.position,
+      displayPos:   g.displayPos,
+      scoreDisplay: g.scoreDisplay,
+      isMC:         false,
+      rounds:       g.rounds,
+      thruDisplay:  g.thruDisplay,
+      stateStr:     g.stateStr,
+    };
+  }
+
+  // ── Step 4: Compute per-owner scores ─────────────────────────────────────
+  const ownerScores = OWNERS.map(owner => {
+    const golferResults = owner.golfers.map(name => ({
+      name,
+      ...getGolferResult(name),
+    }));
+
+    // Sum of the 4 golfers' positions.
+    // We only show a sum once all 4 have a known position (prevents misleading
+    // partial sums before some golfers have teed off).
+    const positions = golferResults.map(g => g.position).filter(p => p !== null);
+    const sum = (anyPlayed && positions.length === 4)
+      ? positions.reduce((a, b) => a + b, 0)
+      : null;
+
+    // Tiebreaker data: all individual round stroke counts for all 4 golfers,
+    // merged and sorted ascending.  Comparing element-by-element means the owner
+    // with the lower best single round wins; if equal, compare next round, etc.
+    const allRounds = golferResults.flatMap(g => g.rounds ?? []).sort((a, b) => a - b);
+
+    return { owner, golferResults, sum, allRounds };
+  });
+
+  // ── Step 5: Sort from best (lowest sum) to worst ─────────────────────────
+  ownerScores.sort((a, b) => {
+    // Pre-tournament: no sums yet, keep original OWNERS order
+    if (a.sum === null && b.sum === null) return 0;
+    if (a.sum === null) return 1;   // unknown sums go to the bottom
+    if (b.sum === null) return -1;
+
+    if (a.sum !== b.sum) return a.sum - b.sum;  // lower sum = better
+
+    // Tiebreaker: compare sorted round lists element-by-element
+    const len = Math.max(a.allRounds.length, b.allRounds.length);
+    for (let i = 0; i < len; i++) {
+      const ra = a.allRounds[i] ?? 999;  // missing rounds treated as worst possible
+      const rb = b.allRounds[i] ?? 999;
+      if (ra !== rb) return ra - rb;
+    }
+    return 0;
+  });
+
+  // ── Step 6: Assign draft points ──────────────────────────────────────────
+  // Rank 1 (best sum) → 8 draft pts → picks 1st in the fantasy draft.
+  // Rank 8 (worst sum) → 1 draft pt → picks 8th.
+  ownerScores.forEach((o, i) => {
+    o.rank    = i + 1;
+    o.openPts = anyPlayed ? (8 - i) : null;
+  });
+
+  return ownerScores;
+}
+
+// =============================================================================
+// RENDERING
+// =============================================================================
+
+// ── Overall Standings Table ───────────────────────────────────────────────────
+// Currently only The Open contributes to total points; MLB and LLWS are "—".
+// When those events are added, total will sum all three.
+
+function renderOverall(ownerScores) {
+  const tbody = document.getElementById('overall-tbody');
+
+  const rows = ownerScores.map(o => {
+    const r = o.rank;
+    const rankCls = r === 1 ? 'rank-gold' : r === 2 ? 'rank-silver' : r === 3 ? 'rank-bronze' : '';
+
+    const openCell  = o.openPts != null
+      ? `<span class="pts-val">${o.openPts}</span>`
+      : `<span class="pts-na">—</span>`;
+
+    // Total is just The Open for now; will add MLB + LLWS later
+    const totalCell = o.openPts != null
+      ? `<span class="pts-val">${o.openPts}</span>`
+      : `<span class="pts-na">—</span>`;
+
+    const pickCls = r === 1 ? 'pick-1st' : '';
+
+    return `<tr>
+      <td class="rank-cell ${rankCls}">${r}</td>
+      <td class="owner-cell">${esc(o.owner.name)}</td>
+      <td class="pts-cell">${openCell}</td>
+      <td class="pts-cell"><span class="pts-na">—</span></td>
+      <td class="pts-cell"><span class="pts-na">—</span></td>
+      <td class="pts-cell">${totalCell}</td>
+      <td class="pick-cell ${pickCls}">${ordinal(r)}</td>
+    </tr>`;
+  });
+
+  tbody.innerHTML = rows.join('');
+}
+
+// ── The Open — per-golfer position badge CSS class ────────────────────────────
+// Gives a visual tier to each golfer's position (top 5 = bright green, etc.)
+function posBadgeCls(position, isMC) {
+  if (isMC || position === null) return 'pos-mc';
+  if (position <= 5)  return 'pos-top5';
+  if (position <= 25) return 'pos-top25';
+  return 'pos-field';
+}
+
+// HTML for a score-to-par display with color coding.
+function scoreHtml(scoreDisplay) {
+  if (!scoreDisplay || scoreDisplay === '—') return `<span class="sc-even">—</span>`;
+  if (scoreDisplay.startsWith('-'))           return `<span class="sc-under">${esc(scoreDisplay)}</span>`;
+  if (scoreDisplay === 'E')                   return `<span class="sc-even">E</span>`;
+  return `<span class="sc-over">${esc(scoreDisplay)}</span>`;
+}
+
+// ── The Open Championship Cards ───────────────────────────────────────────────
+function renderOpen(ownerScores) {
+  // Banner: describe the current tournament state
+  const banner = document.getElementById('open-banner');
+  if (tournamentState === 'pre') {
+    banner.style.display = 'block';
+    banner.innerHTML = `<strong>The Open Championship</strong> — Tournament begins July 16. `
+      + `Golfer assignments are locked in. Scores will appear once play begins.`;
+  } else if (hasLive) {
+    banner.style.display = 'block';
+    banner.innerHTML = `<span class="live-dot">&#9679; LIVE</span> — Rounds in progress. Positions update every 20 seconds.`;
+  } else if (tournamentState === 'post') {
+    banner.style.display = 'block';
+    banner.innerHTML = `<strong>The Open Championship — Final Results.</strong> Scores are official.`;
+  } else {
+    // Between rounds — show nothing special
+    banner.style.display = 'none';
+  }
+
+  // Owner cards
+  const container = document.getElementById('open-cards');
+
+  const cards = ownerScores.map(o => {
+    const r       = o.rank;
+    const rankCls = r === 1 ? 'gold-r' : r === 2 ? 'silver-r' : r === 3 ? 'bronze-r' : '';
+
+    // Sum display in the card header
+    const sumHtml = o.sum != null
+      ? `Sum: <strong>${o.sum}</strong>`
+      : `<span style="color:var(--muted)">Awaiting scores</span>`;
+
+    // Draft points badge
+    const ptsBadge = o.openPts != null
+      ? `<span class="card-pts">${o.openPts} pts</span>`
+      : `<span class="card-pts pts-tbd">—</span>`;
+
+    // 4 golfer tiles arranged in a 2×2 grid
+    const tiles = o.golferResults.map(g => {
+      const badgeCls = posBadgeCls(g.position, g.isMC);
+
+      // Thru display: only show when there's something meaningful to say
+      const showThru = g.thruDisplay && g.thruDisplay !== '—' && tournamentState !== 'pre';
+      const thruText = showThru ? ` · ${esc(g.thruDisplay)}` : '';
+
+      return `<div class="golfer-tile">
+        <div class="pos-badge ${badgeCls}">${esc(g.displayPos)}</div>
+        <div class="golfer-info">
+          <div class="golfer-name">${esc(g.name)}</div>
+          <div class="golfer-meta">${scoreHtml(g.scoreDisplay)}${thruText}</div>
+        </div>
+      </div>`;
+    }).join('');
+
+    return `<div class="open-card">
+      <div class="open-card-header">
+        <span class="card-rank ${rankCls}">#${r}</span>
+        <span class="card-owner">${esc(o.owner.name)}</span>
+        <span class="card-sum">${sumHtml}</span>
+        ${ptsBadge}
+      </div>
+      <div class="golfer-grid">${tiles}</div>
+    </div>`;
+  }).join('');
+
+  container.innerHTML = cards;
+}
+
+// =============================================================================
+// SYNC & POLLING
+// Fetches fresh data from ESPN on a timer.  Polls faster (20s vs 90s) when
+// rounds are actively in progress, then slows back down between rounds.
+// =============================================================================
+
+function setStatus(type, html) {
+  const el      = document.getElementById('sync-status');
+  el.innerHTML  = html;
+  el.className  = `sync-pill sync-${type}`;
+}
+
+async function syncNow() {
+  if (syncPaused) return;
+  setStatus('syncing', '&#8635; Syncing…');
+
+  try {
+    await fetchLeaderboard();
+
+    const scores = computeOpenScores();
+    renderOverall(scores);
+    renderOpen(scores);
+
+    const t = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+    if (hasLive) {
+      setStatus('live', '&#9679; Live — updating');
+    } else if (tournamentState === 'post') {
+      setStatus('ok', `&#10003; Final · synced ${t}`);
+    } else {
+      setStatus('ok', `&#10003; Synced ${t}`);
+    }
+  } catch (err) {
+    setStatus('error', '&#10007; Sync error');
+    console.error('Sync failed:', err);
+  }
+
+  // Reschedule: faster when live, slower otherwise.
+  // clearInterval + setInterval rather than setTimeout so the interval stays
+  // clean even if syncNow() is called manually (e.g., by the user unpausing).
+  clearInterval(syncTimer);
+  if (!syncPaused) {
+    syncTimer = setInterval(syncNow, hasLive ? LIVE_MS : SYNC_MS);
+  }
+}
+
+function togglePause() {
+  syncPaused = !syncPaused;
+  document.getElementById('pause-btn').textContent = syncPaused ? 'Resume' : 'Pause';
+  if (!syncPaused) {
+    syncNow();
+  } else {
+    clearInterval(syncTimer);
+    setStatus('ok', '&#9646;&#9646; Paused');
+  }
+}
+
+// =============================================================================
+// INIT
+// On load: hydrate from localStorage cache immediately so the page isn't blank,
+// then kick off the first live sync in the background.
+// =============================================================================
+
+(function init() {
+  // Try restoring a previous fetch from cache.  This makes the page feel instant
+  // on reload — the user sees stale-but-real data while fresh data loads.
+  try {
+    const cached = JSON.parse(localStorage.getItem(LS_KEY) || 'null');
+    if (cached?.leaderboardData) {
+      leaderboardData = cached.leaderboardData;
+      tournamentState = cached.tournamentState || 'pre';
+      hasLive         = cached.hasLive || false;
+
+      const scores = computeOpenScores();
+      renderOverall(scores);
+      renderOpen(scores);
+      setStatus('syncing', '&#8635; Refreshing…');
+    }
+  } catch (_) { /* malformed cache — ignore and let live sync populate */ }
+
+  // Fire the first sync immediately, then set up the repeating timer
+  syncNow();
+})();
+</script>
+</body>
+</html>
