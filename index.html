@@ -633,7 +633,9 @@ function parseCompetitor(c) {
   // is the display string like "-5", "E", "+3".
   const scoreStat   = (c.statistics || []).find(s => s.name === 'scoreToPar');
   const scoreToPar  = scoreStat != null ? scoreStat.value : null;
-  const scoreDisplay = c.score?.displayValue || '—';
+  // Use the display string from the same statistics entry as scoreToPar so they
+  // always agree. c.score?.displayValue can reflect round score rather than total.
+  const scoreDisplay = scoreStat?.displayValue || '—';
 
   // Per-round stroke counts live in the linescores array.
   // Each linescore covers one round; the "value" field is total strokes (e.g. 68).
