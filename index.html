@@ -1123,11 +1123,18 @@ function renderOpen(ownerScores) {
       const showThru = g.thruDisplay && g.thruDisplay !== '—' && tournamentState !== 'pre';
       const thruText = showThru ? ` · ${esc(g.thruDisplay)}` : '';
 
+      // For MC/WD/DQ golfers, the badge just says "MC"/"WD" — surface the
+      // computed scoring position (cutCount + rank among the MC/WD pool)
+      // alongside it so it's clear what number actually feeds the sum.
+      const posNote = (g.displayPos === 'MC' || g.displayPos === 'WD' || g.displayPos === 'DQ') && g.position != null
+        ? ` · pos ${g.position}`
+        : '';
+
       return `<div class="golfer-tile">
         <div class="pos-badge ${badgeCls}">${esc(g.displayPos)}</div>
         <div class="golfer-info">
           <div class="golfer-name">${esc(g.name)}</div>
-          <div class="golfer-meta">${scoreHtml(g.scoreDisplay)}${thruText}</div>
+          <div class="golfer-meta">${scoreHtml(g.scoreDisplay)}${thruText}${posNote}</div>
         </div>
       </div>`;
     }).join('');
