@@ -511,6 +511,61 @@ const OWNERS = [
 // Returns all active tournaments including The Open Championship.
 const ESPN_URL = 'https://site.api.espn.com/apis/site/v2/sports/golf/leaderboard?league=pga';
 
+// =============================================================================
+// THE OPEN CHAMPIONSHIP 2026 — HARDCODED FINAL RESULTS
+// The tournament ended July 20. ESPN's live leaderboard no longer carries it
+// (the Rocket Classic is now live and some of our golfers appear there, which
+// would corrupt the Open scores). We embed the final standings here instead.
+//
+// Keys are normName() of each golfer's name as stored in OWNERS[].golfers.
+// MC players carry a `hardcodedPosition` field with their actual ESPN field
+// position (e.g. T79) so we bypass the dynamic cut-line recalculation, which
+// would be wrong because it only sees our 32 golfers, not the full field.
+// =============================================================================
+
+const OPEN_2026_FINAL_DATA = {
+  // ── Matt's team ──────────────────────────────────────────────────────────
+  'scottie scheffler': { displayName: 'Scottie Scheffler', position: 4,    displayPos: 'T4',  scoreToPar: -7, scoreDisplay: '-7', rounds: [], isMC: false, isWD: false, isDQ: false, period: 4, thruDisplay: 'F', stateStr: 'post' },
+  'si woo kim':        { displayName: 'Si Woo Kim',         position: 6,    displayPos: 'T6',  scoreToPar: -6, scoreDisplay: '-6', rounds: [], isMC: false, isWD: false, isDQ: false, period: 4, thruDisplay: 'F', stateStr: 'post' },
+  'shane lowry':       { displayName: 'Shane Lowry',        position: 28,   displayPos: 'T28', scoreToPar: -2, scoreDisplay: '-2', rounds: [], isMC: false, isWD: false, isDQ: false, period: 4, thruDisplay: 'F', stateStr: 'post' },
+  'harris english':    { displayName: 'Harris English',     position: null, displayPos: 'MC',  scoreToPar: 2,  scoreDisplay: '+2', rounds: [], isMC: true,  isWD: false, isDQ: false, period: 2, thruDisplay: 'F', stateStr: 'post', hardcodedPosition: 79 },
+  // ── Keanan's team ────────────────────────────────────────────────────────
+  'xander schauffele': { displayName: 'Xander Schauffele',  position: 18,   displayPos: 'T18', scoreToPar: -3, scoreDisplay: '-3', rounds: [], isMC: false, isWD: false, isDQ: false, period: 4, thruDisplay: 'F', stateStr: 'post' },
+  'ludvig aberg':      { displayName: 'Ludvig Åberg',       position: 9,    displayPos: 'T9',  scoreToPar: -5, scoreDisplay: '-5', rounds: [], isMC: false, isWD: false, isDQ: false, period: 4, thruDisplay: 'F', stateStr: 'post' },
+  'patrick reed':      { displayName: 'Patrick Reed',       position: 46,   displayPos: 'T46', scoreToPar: 0,  scoreDisplay: 'E',  rounds: [], isMC: false, isWD: false, isDQ: false, period: 4, thruDisplay: 'F', stateStr: 'post' },
+  'alex fitzpatrick':  { displayName: 'Alex Fitzpatrick',   position: 71,   displayPos: 'T71', scoreToPar: 6,  scoreDisplay: '+6', rounds: [], isMC: false, isWD: false, isDQ: false, period: 4, thruDisplay: 'F', stateStr: 'post' },
+  // ── Zach's team ──────────────────────────────────────────────────────────
+  'viktor hovland':    { displayName: 'Viktor Hovland',     position: null, displayPos: 'MC',  scoreToPar: 4,  scoreDisplay: '+4', rounds: [], isMC: true,  isWD: false, isDQ: false, period: 2, thruDisplay: 'F', stateStr: 'post', hardcodedPosition: 108 },
+  'chris gotterup':    { displayName: 'Chris Gotterup',     position: 18,   displayPos: 'T18', scoreToPar: -3, scoreDisplay: '-3', rounds: [], isMC: false, isWD: false, isDQ: false, period: 4, thruDisplay: 'F', stateStr: 'post' },
+  'joaquin niemann':   { displayName: 'Joaquin Niemann',    position: null, displayPos: 'MC',  scoreToPar: 4,  scoreDisplay: '+4', rounds: [], isMC: true,  isWD: false, isDQ: false, period: 2, thruDisplay: 'F', stateStr: 'post', hardcodedPosition: 108 },
+  'patrick cantlay':   { displayName: 'Patrick Cantlay',    position: 28,   displayPos: 'T28', scoreToPar: -2, scoreDisplay: '-2', rounds: [], isMC: false, isWD: false, isDQ: false, period: 4, thruDisplay: 'F', stateStr: 'post' },
+  // ── Patrick's team ───────────────────────────────────────────────────────
+  'jon rahm':          { displayName: 'Jon Rahm',           position: 46,   displayPos: 'T46', scoreToPar: 0,  scoreDisplay: 'E',  rounds: [], isMC: false, isWD: false, isDQ: false, period: 4, thruDisplay: 'F', stateStr: 'post' },
+  'tyrrell hatton':    { displayName: 'Tyrrell Hatton',     position: 69,   displayPos: 'T69', scoreToPar: 5,  scoreDisplay: '+5', rounds: [], isMC: false, isWD: false, isDQ: false, period: 4, thruDisplay: 'F', stateStr: 'post' },
+  'tom kim':           { displayName: 'Tom Kim',            position: null, displayPos: 'MC',  scoreToPar: 3,  scoreDisplay: '+3', rounds: [], isMC: true,  isWD: false, isDQ: false, period: 2, thruDisplay: 'F', stateStr: 'post', hardcodedPosition: 98 },
+  'bryson dechambeau': { displayName: 'Bryson DeChambeau',  position: 14,   displayPos: 'T14', scoreToPar: -4, scoreDisplay: '-4', rounds: [], isMC: false, isWD: false, isDQ: false, period: 4, thruDisplay: 'F', stateStr: 'post' },
+  // ── Derek's team ─────────────────────────────────────────────────────────
+  'matt fitzpatrick':  { displayName: 'Matt Fitzpatrick',   position: null, displayPos: 'MC',  scoreToPar: 4,  scoreDisplay: '+4', rounds: [], isMC: true,  isWD: false, isDQ: false, period: 2, thruDisplay: 'F', stateStr: 'post', hardcodedPosition: 108 },
+  'wyndham clark':     { displayName: 'Wyndham Clark',      position: null, displayPos: 'MC',  scoreToPar: 3,  scoreDisplay: '+3', rounds: [], isMC: true,  isWD: false, isDQ: false, period: 2, thruDisplay: 'F', stateStr: 'post', hardcodedPosition: 98 },
+  'sam burns':         { displayName: 'Sam Burns',          position: 3,    displayPos: 'T3',  scoreToPar: -8, scoreDisplay: '-8', rounds: [], isMC: false, isWD: false, isDQ: false, period: 4, thruDisplay: 'F', stateStr: 'post' },
+  'jj spaun':          { displayName: 'JJ Spaun',           position: 40,   displayPos: 'T40', scoreToPar: -1, scoreDisplay: '-1', rounds: [], isMC: false, isWD: false, isDQ: false, period: 4, thruDisplay: 'F', stateStr: 'post' },
+  // ── Cody's team ──────────────────────────────────────────────────────────
+  'robert macintyre':  { displayName: 'Robert MacIntyre',   position: 28,   displayPos: 'T28', scoreToPar: -2, scoreDisplay: '-2', rounds: [], isMC: false, isWD: false, isDQ: false, period: 4, thruDisplay: 'F', stateStr: 'post' },
+  'justin rose':       { displayName: 'Justin Rose',        position: null, displayPos: 'MC',  scoreToPar: 3,  scoreDisplay: '+3', rounds: [], isMC: true,  isWD: false, isDQ: false, period: 2, thruDisplay: 'F', stateStr: 'post', hardcodedPosition: 98 },
+  'min woo lee':       { displayName: 'Min Woo Lee',        position: 59,   displayPos: 'T59', scoreToPar: 2,  scoreDisplay: '+2', rounds: [], isMC: false, isWD: false, isDQ: false, period: 4, thruDisplay: 'F', stateStr: 'post' },
+  'aaron rai':         { displayName: 'Aaron Rai',          position: null, displayPos: 'MC',  scoreToPar: 2,  scoreDisplay: '+2', rounds: [], isMC: true,  isWD: false, isDQ: false, period: 2, thruDisplay: 'F', stateStr: 'post', hardcodedPosition: 79 },
+  // ── Josh's team ──────────────────────────────────────────────────────────
+  'tommy fleetwood':   { displayName: 'Tommy Fleetwood',    position: 4,    displayPos: 'T4',  scoreToPar: -7, scoreDisplay: '-7', rounds: [], isMC: false, isWD: false, isDQ: false, period: 4, thruDisplay: 'F', stateStr: 'post' },
+  'collin morikawa':   { displayName: 'Collin Morikawa',    position: 18,   displayPos: 'T18', scoreToPar: -3, scoreDisplay: '-3', rounds: [], isMC: false, isWD: false, isDQ: false, period: 4, thruDisplay: 'F', stateStr: 'post' },
+  'justin thomas':     { displayName: 'Justin Thomas',      position: 65,   displayPos: 'T65', scoreToPar: 3,  scoreDisplay: '+3', rounds: [], isMC: false, isWD: false, isDQ: false, period: 4, thruDisplay: 'F', stateStr: 'post' },
+  'brooks koepka':     { displayName: 'Brooks Koepka',      position: 28,   displayPos: 'T28', scoreToPar: -2, scoreDisplay: '-2', rounds: [], isMC: false, isWD: false, isDQ: false, period: 4, thruDisplay: 'F', stateStr: 'post' },
+  // ── Stephen's team ───────────────────────────────────────────────────────
+  'rory mcilroy':      { displayName: 'Rory McIlroy',       position: 40,   displayPos: 'T40', scoreToPar: -1, scoreDisplay: '-1', rounds: [], isMC: false, isWD: false, isDQ: false, period: 4, thruDisplay: 'F', stateStr: 'post' },
+  'cameron young':     { displayName: 'Cameron Young',      position: 2,    displayPos: 'T2',  scoreToPar: -9, scoreDisplay: '-9', rounds: [], isMC: false, isWD: false, isDQ: false, period: 4, thruDisplay: 'F', stateStr: 'post' },
+  'russell henley':    { displayName: 'Russell Henley',     position: 9,    displayPos: 'T9',  scoreToPar: -5, scoreDisplay: '-5', rounds: [], isMC: false, isWD: false, isDQ: false, period: 4, thruDisplay: 'F', stateStr: 'post' },
+  'hideki matsuyama':  { displayName: 'Hideki Matsuyama',   position: 14,   displayPos: 'T14', scoreToPar: -4, scoreDisplay: '-4', rounds: [], isMC: false, isWD: false, isDQ: false, period: 4, thruDisplay: 'F', stateStr: 'post' },
+};
+
 const SYNC_MS  = 90_000;   // normal poll interval: 90 seconds
 const LIVE_MS  = 20_000;   // faster poll when golfers are actively on the course
 const LS_KEY   = 'leagueLeague2026_v1';  // localStorage key for caching
@@ -687,8 +742,11 @@ async function fetchLeaderboard() {
   const events = data.events || [];
 
   // ESPN returns multiple simultaneous tournaments.
-  // Find The Open Championship specifically; fall back to first event if not found.
-  const openEvent = events.find(e => /the open/i.test(e.name)) || events[0];
+  // Find The Open Championship specifically. If it's no longer in the feed
+  // (it ended July 20 and ESPN has moved on), leave the hardcoded final data
+  // in place — do NOT fall back to events[0], which would be whatever current
+  // tournament is live and would corrupt our Open scores with wrong golfer data.
+  const openEvent = events.find(e => /the open/i.test(e.name));
   if (!openEvent) return;
 
   const competition = openEvent.competitions?.[0];
@@ -842,10 +900,12 @@ function computeOpenScores() {
       return { position: null, displayPos: '—', scoreDisplay: '—', rounds: [], isMC: false };
     }
 
-    // MC / DQ / WD before cut: use the position assigned in step 2
+    // MC / DQ / WD before cut: use the hardcoded final position if present
+    // (set for the 2026 Open final data to reflect the actual full-field ESPN
+    // positions), otherwise fall back to the dynamically computed mcPosMap.
     if (g.isMC || g.isDQ || (g.isWD && g.period < 3)) {
       return {
-        position:     mcPosMap[g.displayName] ?? null,
+        position:     g.hardcodedPosition ?? mcPosMap[g.displayName] ?? null,
         displayPos:   g.displayPos,
         scoreDisplay: g.scoreDisplay,
         isMC:         true,
@@ -1307,26 +1367,32 @@ function togglePause() {
 // =============================================================================
 
 (function init() {
-  // Restore from localStorage cache so the page shows real data instantly on
-  // reload rather than a blank loading state while the fetches complete.
+  // The Open Championship ended July 20 — always pre-load the hardcoded final
+  // results so the page renders correct Open scores immediately, even before
+  // the first sync fires.  (The live ESPN feed no longer carries The Open, and
+  // cached leaderboardData from before may contain Rocket Classic golfer data
+  // which would produce wrong scores if used.)
+  leaderboardData = OPEN_2026_FINAL_DATA;
+  tournamentState = 'post';
+  hasLive         = false;
+
+  // Restore only the MLB portion from localStorage cache — that data is still
+  // live (Aug 1–14 window) and safe to use from cache.
   try {
     const cached = JSON.parse(localStorage.getItem(LS_KEY) || 'null');
-    if (cached?.leaderboardData) {
-      leaderboardData = cached.leaderboardData;
-      tournamentState = cached.tournamentState || 'pre';
-      hasLive         = cached.hasLive         || false;
-      mlbGames        = cached.mlbGames        || [];
-      mlbWindowState  = cached.mlbWindowState  || 'pre';
-      mlbHasLive      = cached.mlbHasLive      || false;
-
-      const openScores = computeOpenScores();
-      const mlbScores  = computeMLBScores();
-      renderOverall(openScores, mlbScores);
-      renderOpen(openScores);
-      renderMLB(mlbScores);
-      setStatus('syncing', '&#8635; Refreshing…');
+    if (cached) {
+      mlbGames       = cached.mlbGames       || [];
+      mlbWindowState = cached.mlbWindowState || 'pre';
+      mlbHasLive     = cached.mlbHasLive     || false;
     }
-  } catch (_) { /* malformed cache — ignore and let live sync populate */ }
+  } catch (_) { /* malformed cache — ignore */ }
+
+  const openScores = computeOpenScores();
+  const mlbScores  = computeMLBScores();
+  renderOverall(openScores, mlbScores);
+  renderOpen(openScores);
+  renderMLB(mlbScores);
+  setStatus('syncing', '&#8635; Refreshing…');
 
   syncNow();
 })();
