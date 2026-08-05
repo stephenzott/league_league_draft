@@ -410,6 +410,16 @@
       color: var(--muted);
       font-weight: 600;
     }
+
+    /* Current/last game score line, shown under the stats row */
+    .mlb-game-line {
+      padding: 0.5rem 1rem 0.7rem;
+      border-top: 1px solid var(--border);
+      font-size: 0.82rem;
+      color: var(--muted);
+    }
+    .mlb-game-line.is-live { color: var(--text); }
+    .mlb-game-line .live-dot { font-size: 0.6rem; }
   </style>
 </head>
 <body>
@@ -621,6 +631,7 @@ let syncPaused = false;
 let mlbGames       = [];     // processed game objects for the scoring window
 let mlbWindowState = 'pre';  // 'pre', 'active', or 'post' relative to Aug 1-14
 let mlbHasLive     = false;  // true when any MLB game is currently in progress
+let mlbTeamGame    = {};     // abbr → the single most-relevant game to show on that team's tile
 
 // =============================================================================
 // UTILITIES
@@ -797,6 +808,42 @@ async function fetchMLBGames() {
   mlbHasLive = (data.events || []).some(
     e => e.competitions?.[0]?.status?.type?.state === 'in'
   );
+
+  // Build a "current game" snapshot per team, for the score line shown on each
+  // card tile. Unlike mlbGames below (which only keeps completed games for
+  // scoring), this tracks every team's most time-relevant game — whichever
+  // game (past, live, or upcoming) is closest to right now. In practice that
+  // means: the live game if they're playing, otherwise today's final score,
+  // otherwise their next scheduled game.
+  mlbTeamGame = {};
+  (data.events || []).forEach(e => {
+    const comp = e.competitions?.[0];
+    const home = comp?.competitors?.find(c => c.homeAway === 'home');
+    const away = comp?.competitors?.find(c => c.homeAway === 'away');
+    if (!comp || !home || !away) return;
+
+    const gameDate = new Date(e.date);
+    const gameInfo = {
+      distFromNow: Math.abs(gameDate - now),
+      state:       comp.status?.type?.state,      // 'pre' | 'in' | 'post'
+      detail:      comp.status?.type?.shortDetail, // e.g. "Top 8th", "Final", "8/4 - 7:05 PM EDT"
+    };
+
+    [[home, away], [away, home]].forEach(([team, opp]) => {
+      const abbr     = team.team.abbreviation;
+      const existing = mlbTeamGame[abbr];
+      // Keep whichever game is closer in time to now — a live/just-finished
+      // game will always beat a game a full day away in either direction.
+      if (existing && existing.distFromNow <= gameInfo.distFromNow) return;
+      mlbTeamGame[abbr] = {
+        ...gameInfo,
+        opponentAbbr: opp.team.abbreviation,
+        isHome:       team.homeAway === 'home',
+        teamScore:    parseInt(team.score || '0', 10),
+        oppScore:     parseInt(opp.score || '0', 10),
+      };
+    });
+  });
 
   // Only include completed games — scheduled/in-progress games don't count yet.
   mlbGames = (data.events || [])
@@ -1213,6 +1260,23 @@ function renderOpen(ownerScores) {
   container.innerHTML = cards;
 }
 
+// Formats the "current game" line shown on each MLB card — the live score if
+// the team is playing right now, today's final if the game already ended, or
+// the next scheduled matchup if it hasn't started. Returns null if we have no
+// game data at all for this team (e.g. before the first successful fetch).
+function formatMlbGameLine(g) {
+  if (!g) return null;
+  const vsAt = g.isHome ? 'vs' : '@';
+  if (g.state === 'in') {
+    return `${vsAt} ${esc(g.opponentAbbr)} &nbsp;${g.teamScore}–${g.oppScore}&nbsp; · ${esc(g.detail || 'Live')}`;
+  }
+  if (g.state === 'post') {
+    return `${vsAt} ${esc(g.opponentAbbr)} &nbsp;Final ${g.teamScore}–${g.oppScore}`;
+  }
+  // 'pre' — game hasn't started yet, so there's no score to show.
+  return `${vsAt} ${esc(g.opponentAbbr)} · ${esc(g.detail || 'Scheduled')}`;
+}
+
 // ── MLB Team Cards ────────────────────────────────────────────────────────────
 function renderMLB(mlbScores) {
   const banner = document.getElementById('mlb-banner');
@@ -1256,6 +1320,12 @@ function renderMLB(mlbScores) {
 
     const runsDisp = noGames ? '—' : m.runsScored;
 
+    const game     = mlbTeamGame[m.abbr];
+    const gameLine = formatMlbGameLine(game);
+    const gameHtml = gameLine
+      ? `<div class="mlb-game-line${game.state === 'in' ? ' is-live' : ''}">${game.state === 'in' ? '<span class="live-dot">&#9679;</span> ' : ''}${gameLine}</div>`
+      : '';
+
     return `<div class="open-card">
       <div class="open-card-header">
         <span class="card-rank ${rankCls}">${rankDisp}</span>
@@ -1277,6 +1347,7 @@ function renderMLB(mlbScores) {
           <span class="mlb-stat-lbl">Runs (TB)</span>
         </div>
       </div>
+      ${gameHtml}
     </div>`;
   }).join('');
 
@@ -1324,7 +1395,7 @@ async function syncNow() {
     try {
       localStorage.setItem(LS_KEY, JSON.stringify({
         leaderboardData, tournamentState, hasLive,
-        mlbGames, mlbWindowState, mlbHasLive,
+        mlbGames, mlbWindowState, mlbHasLive, mlbTeamGame,
         updatedAt: Date.now(),
       }));
     } catch (_) { /* quota exceeded — not fatal */ }
@@ -1384,6 +1455,7 @@ function togglePause() {
       mlbGames       = cached.mlbGames       || [];
       mlbWindowState = cached.mlbWindowState || 'pre';
       mlbHasLive     = cached.mlbHasLive     || false;
+      mlbTeamGame    = cached.mlbTeamGame    || {};
     }
   } catch (_) { /* malformed cache — ignore */ }
 
