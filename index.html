@@ -1042,8 +1042,9 @@ function computeOpenScores() {
 // =============================================================================
 // MLB SCORING
 // Tallies each owner's team W-L record over the window and converts it to
-// draft points.  Win percentage is the primary sort; runs scored is the
-// tiebreaker (as specified in the league rules).
+// draft points.  Win percentage is the primary sort; total wins break ties
+// (rewards more games played at the same pct), then runs scored breaks any
+// remaining tie (as specified in the league rules).
 // =============================================================================
 
 function computeMLBScores() {
@@ -1088,12 +1089,12 @@ function computeMLBScores() {
     };
   });
 
-  // Sort descending: best win % first; runs scored breaks ties.
-  scores.sort((a, b) =>
-    b.winPct !== a.winPct
-      ? b.winPct - a.winPct
-      : b.runsScored - a.runsScored
-  );
+  // Sort descending: best win % first, then most wins, then runs scored.
+  scores.sort((a, b) => {
+    if (b.winPct !== a.winPct) return b.winPct - a.winPct;
+    if (b.wins   !== a.wins)   return b.wins   - a.wins;
+    return b.runsScored - a.runsScored;
+  });
 
   // Only assign draft points once games have actually been played.
   // Before the window opens all records are 0-0, so we show "—" rather than
