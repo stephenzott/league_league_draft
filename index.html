@@ -420,6 +420,23 @@
     }
     .mlb-game-line.is-live { color: var(--text); }
     .mlb-game-line .live-dot { font-size: 0.6rem; }
+
+    /* ── LLWS tab ── */
+    /* Explicit "still alive" / "eliminated" badge next to the team name —
+       double-elimination brackets don't make this obvious from the record
+       alone (a 1-1 team could be very much alive, or already out, depending
+       on which bracket round that 2nd game was). */
+    .llws-status {
+      font-size: 0.62rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      padding: 0.14rem 0.45rem;
+      border-radius: 4px;
+      white-space: nowrap;
+    }
+    .llws-alive { background: #0e3020; color: #3ecf90; }  /* matches .pos-top5 green */
+    .llws-out   { background: #2a1010; color: #a05050; }  /* matches .pos-mc red */
   </style>
 </head>
 <body>
@@ -515,18 +532,20 @@
 
 // Each owner is assigned exactly 4 golfers via snake draft (groups A–H).
 // These assignments are fixed for the tournament and will not change.
-// llwsTeams is left empty ([]) for every owner — the LLWS field/bracket isn't
-// assigned to owners yet (see CLAUDE.md "Open Questions"). Once the random
-// draw happens, fill these in the same way golfers/mlbTeam are hardcoded above.
+// llwsTeam is left null for every owner — the LLWS field/bracket isn't
+// assigned to owners yet (see CLAUDE.md "Open Questions"). Owners get exactly
+// one LLWS team each (unlike golfers/1, this is a single object like mlbTeam,
+// not an array). Once the random draw happens, fill these in the same way
+// mlbTeam is hardcoded above — e.g. { name: 'Phenix City AL', abbr: 'AL' }.
 const OWNERS = [
-  { id: 1, name: 'Matt',    golfers: ['Scottie Scheffler', 'Si Woo Kim', 'Shane Lowry', 'Harris English'],        mlbTeam: { name: 'San Francisco Giants',  abbr: 'SF'  }, llwsTeams: [] },
-  { id: 2, name: 'Keanan',  golfers: ['Xander Schauffele', 'Ludvig Åberg', 'Patrick Reed', 'Alex Fitzpatrick'],   mlbTeam: { name: 'Philadelphia Phillies', abbr: 'PHI' }, llwsTeams: [] },
-  { id: 3, name: 'Zach',    golfers: ['Viktor Hovland', 'Chris Gotterup', 'Joaquin Niemann', 'Patrick Cantlay'],  mlbTeam: { name: 'Boston Red Sox',        abbr: 'BOS' }, llwsTeams: [] },
-  { id: 4, name: 'Patrick', golfers: ['Jon Rahm', 'Tyrrell Hatton', 'Tom Kim', 'Bryson DeChambeau'],              mlbTeam: { name: 'New York Yankees',      abbr: 'NYY' }, llwsTeams: [] },
-  { id: 5, name: 'Derek',   golfers: ['Matt Fitzpatrick', 'Wyndham Clark', 'Sam Burns', 'JJ Spaun'],              mlbTeam: { name: 'Tampa Bay Rays',        abbr: 'TB'  }, llwsTeams: [] },
-  { id: 6, name: 'Cody',    golfers: ['Robert MacIntyre', 'Justin Rose', 'Min Woo Lee', 'Aaron Rai'],             mlbTeam: { name: 'Milwaukee Brewers',     abbr: 'MIL' }, llwsTeams: [] },
-  { id: 7, name: 'Josh',    golfers: ['Tommy Fleetwood', 'Collin Morikawa', 'Justin Thomas', 'Brooks Koepka'],    mlbTeam: { name: 'Los Angeles Dodgers',   abbr: 'LAD' }, llwsTeams: [] },
-  { id: 8, name: 'Stephen', golfers: ['Rory McIlroy', 'Cameron Young', 'Russell Henley', 'Hideki Matsuyama'],     mlbTeam: { name: 'Atlanta Braves',        abbr: 'ATL' }, llwsTeams: [] },
+  { id: 1, name: 'Matt',    golfers: ['Scottie Scheffler', 'Si Woo Kim', 'Shane Lowry', 'Harris English'],        mlbTeam: { name: 'San Francisco Giants',  abbr: 'SF'  }, llwsTeam: null },
+  { id: 2, name: 'Keanan',  golfers: ['Xander Schauffele', 'Ludvig Åberg', 'Patrick Reed', 'Alex Fitzpatrick'],   mlbTeam: { name: 'Philadelphia Phillies', abbr: 'PHI' }, llwsTeam: null },
+  { id: 3, name: 'Zach',    golfers: ['Viktor Hovland', 'Chris Gotterup', 'Joaquin Niemann', 'Patrick Cantlay'],  mlbTeam: { name: 'Boston Red Sox',        abbr: 'BOS' }, llwsTeam: null },
+  { id: 4, name: 'Patrick', golfers: ['Jon Rahm', 'Tyrrell Hatton', 'Tom Kim', 'Bryson DeChambeau'],              mlbTeam: { name: 'New York Yankees',      abbr: 'NYY' }, llwsTeam: null },
+  { id: 5, name: 'Derek',   golfers: ['Matt Fitzpatrick', 'Wyndham Clark', 'Sam Burns', 'JJ Spaun'],              mlbTeam: { name: 'Tampa Bay Rays',        abbr: 'TB'  }, llwsTeam: null },
+  { id: 6, name: 'Cody',    golfers: ['Robert MacIntyre', 'Justin Rose', 'Min Woo Lee', 'Aaron Rai'],             mlbTeam: { name: 'Milwaukee Brewers',     abbr: 'MIL' }, llwsTeam: null },
+  { id: 7, name: 'Josh',    golfers: ['Tommy Fleetwood', 'Collin Morikawa', 'Justin Thomas', 'Brooks Koepka'],    mlbTeam: { name: 'Los Angeles Dodgers',   abbr: 'LAD' }, llwsTeam: null },
+  { id: 8, name: 'Stephen', golfers: ['Rory McIlroy', 'Cameron Young', 'Russell Henley', 'Hideki Matsuyama'],     mlbTeam: { name: 'Atlanta Braves',        abbr: 'ATL' }, llwsTeam: null },
 ];
 
 // ESPN's unofficial PGA/DP World Tour leaderboard endpoint.
@@ -602,13 +621,70 @@ const MLB_URL = `https://site.api.espn.com/apis/site/v2/sports/baseball/mlb/scor
 
 // ── LLWS constants ────────────────────────────────────────────────────────────
 // ESPN's unofficial "Little League Baseball" league slug within the baseball
-// sport (see llws-espn-api-reference.md for how this was confirmed). No
-// exact tournament window is locked in yet, so — per that doc's suggested
-// approach — we hit the scoreboard with no `dates` param, which returns
-// "today's games." That's enough to verify the endpoint works and to start
-// collecting raw game data ahead of team assignments; once owners are mapped
-// to LLWS teams we can switch this to a fixed date-range URL like MLB_URL.
-const LLWS_URL = 'https://site.api.espn.com/apis/site/v2/sports/baseball/llb/scoreboard';
+// sport (see llws-espn-api-reference.md for how this was confirmed).
+//
+// The window below (Aug 19 Opening Round → Aug 30 Championship) was read
+// directly off ESPN's live scoreboard on 2026-08-17/19, not guessed — see the
+// "LLWS_HEADLINE_..." constants below for the actual game-type labels ESPN
+// returns within that window. Games before Aug 19 are Regional Championships
+// (state qualifiers that decide WHICH 20 teams make the actual LLWS field) —
+// those are excluded, both by this date window and by the headline filter in
+// classifyLLWSHeadline() below, as a second line of defense.
+const LLWS_DATE_START = '20260819';
+const LLWS_DATE_END   = '20260830';
+
+const LLWS_URL = `https://site.api.espn.com/apis/site/v2/sports/baseball/llb/scoreboard?dates=${LLWS_DATE_START}-${LLWS_DATE_END}&limit=200`;
+
+// ── LLWS bracket headline classification ───────────────────────────────────────
+// ESPN doesn't expose a structured "round"/"bracket" field (see
+// llws-espn-api-reference.md), but each game's competitions[0].notes[].headline
+// DOES name the round in plain text. Confirmed live against the real 2026
+// schedule, the exact headline vocabulary is:
+//   "... Opening Round"                  → Round 1. Losing does NOT eliminate
+//                                           you — you drop to the elimination
+//                                           bracket (this is a double-elim
+//                                           tournament; see llws-espn-api-reference.md).
+//   "... Double Elimination"             → A winners'-bracket game. Same as
+//                                           above: a loss demotes, it doesn't end
+//                                           your tournament.
+//   "... Elimination Game"               → A losers'-bracket game. A loss here
+//                                           IS a 2nd loss, so it eliminates you.
+//   "... United States Championship"     → US side's single-elimination final.
+//   "... International Championship"     → International side's single-elim final.
+//     (Losing either championship eliminates you even on a 1st loss — these
+//      are winner-take-all, no "if necessary" rematch.)
+//   "... Consolation Game"               → 3rd-place game between two teams
+//                                           who are already eliminated (both
+//                                           semifinal losers) — doesn't change
+//                                           elimination status either way.
+//   "... Championship"                   → The single-elim World Championship
+//                                           final. Losing means "runner-up,"
+//                                           which we still treat as eliminated
+//                                           (not champion) for a uniform flag.
+//   "... Regional Championship"          → Pre-LLWS state/country qualifiers.
+//                                           Not part of the 20-team field —
+//                                           excluded entirely from scoring.
+//
+// Matching order matters: "United States Championship" / "International
+// Championship" both contain the substring "Championship", so those two must
+// be checked BEFORE the generic Championship (World Final) pattern.
+function classifyLLWSHeadline(headline) {
+  const h = String(headline || '');
+  if (/regional championship/i.test(h))          return 'regional';
+  if (/united states championship/i.test(h))     return 'side-championship';
+  if (/international championship/i.test(h))     return 'side-championship';
+  if (/consolation game/i.test(h))                return 'consolation';
+  if (/elimination game/i.test(h))                return 'elimination';
+  if (/opening round/i.test(h))                   return 'winners';
+  if (/double elimination/i.test(h))              return 'winners';
+  if (/championship/i.test(h))                    return 'world-championship';
+  return 'unknown';  // ESPN changed wording — see console.warn in the parser
+}
+
+// Losing a game in any of these categories ends a team's tournament.
+// "winners" (Opening Round / winners'-bracket "Double Elimination" games)
+// and "regional" are the only categories where a loss does NOT eliminate.
+const LLWS_ELIMINATING_CATEGORIES = new Set(['elimination', 'side-championship', 'world-championship', 'consolation']);
 
 // =============================================================================
 // NAME NORMALIZATION
@@ -655,11 +731,14 @@ let mlbWindowState = 'pre';  // 'pre', 'active', or 'post' relative to Aug 1-14
 let mlbHasLive     = false;  // true when any MLB game is currently in progress
 let mlbTeamGame    = {};     // abbr → the single most-relevant game to show on that team's tile
 
-// LLWS state — fetched and stored ahead of team assignments so the endpoint
-// is verified working, but nothing here is attributed to an owner yet since
-// there's no owner→team mapping (see OWNERS[].llwsTeams, all empty for now).
-let llwsGames  = [];     // today's games, lightly parsed (see parseLLWSEvent)
-let llwsHasLive = false; // true when any LLWS game is currently in progress
+// LLWS state — parallel to the MLB state above. Fetched and computed fully
+// (including elimination tracking) even though nothing is attributed to an
+// owner yet, since there's no owner→team mapping (OWNERS[].llwsTeam is null
+// for everyone until the draw happens).
+let llwsGames      = [];     // parsed games within the LLWS_DATE_START/END window
+let llwsWindowState = 'pre'; // 'pre', 'active', or 'post' relative to the window
+let llwsHasLive    = false;  // true when any LLWS game is currently in progress
+let llwsTeamGame   = {};     // abbr → the single most-relevant game to show on that team's tile (mirrors mlbTeamGame)
 
 // =============================================================================
 // UTILITIES
@@ -893,33 +972,41 @@ async function fetchMLBGames() {
 }
 
 // =============================================================================
-// LLWS: FETCH GAME RESULTS (scaffold — not yet attributed to owners)
-// There's no dedicated bracket endpoint (see llws-espn-api-reference.md), so
-// for now we just pull "today's games" and store a lightly-parsed version.
-// Once team assignments exist, this is the place to add bracket-position
-// tracking and hook results into a scoring function, mirroring fetchMLBGames.
+// LLWS: FETCH GAME RESULTS
+// Not yet attributed to any owner (OWNERS[].llwsTeam is null for everyone),
+// but otherwise this mirrors fetchMLBGames() exactly: parse every game in the
+// tournament window, classify it by bracket round (see classifyLLWSHeadline
+// above), and keep both (a) completed games for scoring and (b) a per-team
+// "current game" snapshot for the card UI.
 // =============================================================================
 
 function parseLLWSEvent(e) {
-  const comp  = e.competitions?.[0];
-  const home  = comp?.competitors?.find(c => c.homeAway === 'home');
-  const away  = comp?.competitors?.find(c => c.homeAway === 'away');
-  // ESPN sometimes carries round/bracket info in notes[].headline (e.g. "US
-  // Bracket", "International Bracket") rather than a structured field.
-  const noteHeadline = comp?.notes?.[0]?.headline || null;
+  const comp     = e.competitions?.[0];
+  const home     = comp?.competitors?.find(c => c.homeAway === 'home');
+  const away     = comp?.competitors?.find(c => c.homeAway === 'away');
+  const headline = comp?.notes?.[0]?.headline || null;
+
+  // "TBD" is ESPN's literal placeholder team for a future-round matchup whose
+  // participants aren't determined yet (depends on earlier games finishing) —
+  // see the confirmed shape in llws-espn-api-reference.md-adjacent testing.
+  // We normalize that to null so downstream code can just check truthiness.
+  const homeAbbrRaw = home?.team?.abbreviation ?? null;
+  const awayAbbrRaw = away?.team?.abbreviation ?? null;
 
   return {
-    id:            e.id,
-    name:          e.name,
-    shortName:     e.shortName,
-    noteHeadline,
-    state:         comp?.status?.type?.state || 'pre',  // 'pre' | 'in' | 'post'
-    homeAbbr:      home?.team?.abbreviation ?? null,
-    awayAbbr:      away?.team?.abbreviation ?? null,
-    homeName:      home?.team?.displayName ?? null,
-    awayName:      away?.team?.displayName ?? null,
-    homeScore:     home ? parseInt(home.score || '0', 10) : null,
-    awayScore:     away ? parseInt(away.score || '0', 10) : null,
+    id:        e.id,
+    date:      e.date,
+    headline,
+    category:  classifyLLWSHeadline(headline),
+    state:     comp?.status?.type?.state || 'pre',   // 'pre' | 'in' | 'post'
+    completed: comp?.status?.type?.completed === true,
+    detail:    comp?.status?.type?.shortDetail,
+    homeAbbr:  homeAbbrRaw !== 'TBD' ? homeAbbrRaw : null,
+    awayAbbr:  awayAbbrRaw !== 'TBD' ? awayAbbrRaw : null,
+    homeName:  home?.team?.displayName ?? null,
+    awayName:  away?.team?.displayName ?? null,
+    homeScore: home ? parseInt(home.score || '0', 10) : null,
+    awayScore: away ? parseInt(away.score || '0', 10) : null,
   };
 }
 
@@ -927,10 +1014,55 @@ async function fetchLLWSGames() {
   const resp = await fetch(LLWS_URL);
   if (!resp.ok) throw new Error(`ESPN LLWS API returned HTTP ${resp.status}`);
   const data = await resp.json();
-
   const events = data.events || [];
-  llwsGames   = events.map(parseLLWSEvent);
+  const now = new Date();
+
+  // Determine where we are relative to the LLWS_DATE_START/END window,
+  // mirroring the MLB window-state logic above.
+  if (now < new Date('2026-08-19T00:00:00')) {
+    llwsWindowState = 'pre';
+  } else if (now >= new Date('2026-08-31T00:00:00')) {
+    llwsWindowState = 'post';
+  } else {
+    llwsWindowState = 'active';
+  }
+
   llwsHasLive = events.some(e => e.competitions?.[0]?.status?.type?.state === 'in');
+
+  const parsed = events.map(parseLLWSEvent);
+
+  // Exclude Regional Championships (pre-LLWS state/country qualifiers, not
+  // part of the real 20-team field) — belt-and-suspenders alongside the
+  // LLWS_DATE_START/END window, in case ESPN's dates ever drift.
+  const bracketGames = parsed.filter(g => g.category !== 'regional');
+
+  // Per-team "current game" snapshot for the card UI — same approach as
+  // mlbTeamGame: whichever game (live, just-finished, or next scheduled) is
+  // closest in time to right now.
+  llwsTeamGame = {};
+  bracketGames.forEach(g => {
+    if (!g.homeAbbr || !g.awayAbbr) return; // matchup not determined yet (TBD)
+
+    const gameDate = new Date(g.date);
+    const gameInfo = { distFromNow: Math.abs(gameDate - now), state: g.state, detail: g.detail };
+    const home = { abbr: g.homeAbbr, score: g.homeScore };
+    const away = { abbr: g.awayAbbr, score: g.awayScore };
+
+    [[home, away], [away, home]].forEach(([team, opp]) => {
+      const existing = llwsTeamGame[team.abbr];
+      if (existing && existing.distFromNow <= gameInfo.distFromNow) return;
+      llwsTeamGame[team.abbr] = {
+        ...gameInfo,
+        opponentAbbr: opp.abbr,
+        isHome:       team === home,
+        teamScore:    team.score,
+        oppScore:     opp.score,
+      };
+    });
+  });
+
+  // Only completed bracket games feed scoring (wins/losses/runs/elimination).
+  llwsGames = bracketGames.filter(g => g.state === 'post' && g.completed);
 }
 
 // =============================================================================
@@ -1180,21 +1312,140 @@ function computeMLBScores() {
 }
 
 // =============================================================================
-// LLWS SCORING (scaffold)
-// No owner→team assignments exist yet, so there's nothing to score. This stub
-// returns one entry per owner with null points/rank — same shape computeMLBScores()
-// returns — so renderLLWS() and a future renderOverall() hookup don't need to
-// change once real scoring logic (based on final bracket placement) is added.
+// LLWS SCORING
+// Ranking rule (from the league, agreed as a hybrid of the MLB approach and
+// the fact that this is a bracket tournament, not a fixed-length season):
+//   1. Win percentage — same primary sort as MLB. Because this is a
+//      double-elimination bracket, teams that advance further generally rack
+//      up more wins (you have to keep winning to keep playing), so win% still
+//      tracks "how well is this team doing" reasonably well despite unequal
+//      game counts.
+//   2. Head-to-head — if two tied teams actually played each other during the
+//      window, whoever won more of those meetings ranks higher. LLWS splits
+//      into two separate US/International brackets that only meet at the very
+//      end, so most cross-bracket ties will have NO head-to-head game — in
+//      that case we just fall through to the next tiebreaker.
+//   3. Total wins — rewards a team that got further via the elimination
+//      bracket (more games, more wins) over one that lost early at a higher
+//      win%.
+//   4. Runs scored — final tiebreaker, same as MLB.
+//
+// This function works generically off whatever games have been played, and
+// only produces real pts/rank once at least one owner has an llwsTeam
+// assigned AND that team has played a game — until then everything is null,
+// same "no data yet" convention used by computeMLBScores().
 // =============================================================================
 
+// Build { abbr: { wins, losses, runsScored, eliminated, name } } from every
+// completed game in the window. This works for ALL 20 LLWS teams, not just
+// the ones assigned to owners — assignment happens later when we look each
+// owner's team up in this map.
+function buildLLWSTeamStats(games) {
+  const stats = {};
+
+  function bucket(abbr, name) {
+    if (!stats[abbr]) stats[abbr] = { name, wins: 0, losses: 0, runsScored: 0, eliminated: false };
+    return stats[abbr];
+  }
+
+  games.forEach(g => {
+    const home = bucket(g.homeAbbr, g.homeName);
+    const away = bucket(g.awayAbbr, g.awayName);
+    home.runsScored += g.homeScore;
+    away.runsScored += g.awayScore;
+
+    // Little League games can't end in a tie (extra innings), so higher score
+    // always determines the winner unambiguously — same as MLB.
+    const homeWon = g.homeScore > g.awayScore;
+    const winner  = homeWon ? home : away;
+    const loser   = homeWon ? away : home;
+    winner.wins++;
+    loser.losses++;
+
+    // A loss only ends a team's tournament in certain bracket rounds — see
+    // LLWS_ELIMINATING_CATEGORIES / classifyLLWSHeadline() above. A loss in
+    // the winners' bracket (category 'winners') just demotes them instead.
+    if (LLWS_ELIMINATING_CATEGORIES.has(g.category)) loser.eliminated = true;
+  });
+
+  return stats;
+}
+
+// Build a head-to-head lookup: for any two team abbrs, how many times has
+// each one beaten the other within the window? Keyed by the two abbrs sorted
+// alphabetically so lookup order doesn't matter.
+function buildLLWSHeadToHead(games) {
+  const map = {};
+  games.forEach(g => {
+    const key = [g.homeAbbr, g.awayAbbr].sort().join('|');
+    if (!map[key]) map[key] = {};
+    const winnerAbbr = g.homeScore > g.awayScore ? g.homeAbbr : g.awayAbbr;
+    map[key][winnerAbbr] = (map[key][winnerAbbr] || 0) + 1;
+  });
+  return map;
+}
+
+function getLLWSHeadToHead(abbrA, abbrB, h2hMap) {
+  const rec = h2hMap[[abbrA, abbrB].sort().join('|')];
+  if (!rec) return null;
+  return { aWins: rec[abbrA] || 0, bWins: rec[abbrB] || 0 };
+}
+
 function computeLLWSScores() {
-  return OWNERS.map(o => ({
-    ownerId:  o.id,
-    owner:    o,
-    teams:    o.llwsTeams,
-    llwsPts:  null,
-    rank:     null,
-  }));
+  const teamStats = buildLLWSTeamStats(llwsGames);
+  const h2hMap     = buildLLWSHeadToHead(llwsGames);
+
+  const scores = OWNERS.map(o => {
+    const team = o.llwsTeam;
+    // No team assigned yet — everything null, rendered as "—" / "not assigned".
+    if (!team) {
+      return {
+        ownerId: o.id, owner: o, team: null,
+        wins: 0, losses: 0, runsScored: 0, winPct: 0,
+        eliminated: null, llwsPts: null, rank: null,
+      };
+    }
+
+    const s             = teamStats[team.abbr] || { wins: 0, losses: 0, runsScored: 0, eliminated: false };
+    const gamesPlayed   = s.wins + s.losses;
+    const winPct        = gamesPlayed > 0 ? s.wins / gamesPlayed : 0;
+
+    return {
+      ownerId: o.id, owner: o, team,
+      wins: s.wins, losses: s.losses, runsScored: s.runsScored, winPct,
+      eliminated: s.eliminated, llwsPts: null, rank: null,
+    };
+  });
+
+  // Sort by the hybrid rule above. Owners without a team assigned yet always
+  // sort to the bottom (there's nothing to rank them by).
+  scores.sort((a, b) => {
+    if (!a.team && !b.team) return 0;
+    if (!a.team) return 1;
+    if (!b.team) return -1;
+
+    if (b.winPct !== a.winPct) return b.winPct - a.winPct;
+
+    const h2h = getLLWSHeadToHead(a.team.abbr, b.team.abbr, h2hMap);
+    if (h2h && h2h.aWins !== h2h.bWins) return h2h.bWins - h2h.aWins;
+
+    if (b.wins !== a.wins) return b.wins - a.wins;
+    return b.runsScored - a.runsScored;
+  });
+
+  // Only assign draft points once at least one assigned team has played.
+  const anyGames = scores.some(s => s.team && s.wins + s.losses > 0);
+  if (anyGames) {
+    let rank = 1;
+    scores.forEach(s => {
+      if (!s.team) return;  // unassigned owners never get pts/rank
+      s.llwsPts = 8 - (rank - 1);
+      s.rank    = rank;
+      rank++;
+    });
+  }
+
+  return scores;
 }
 
 // =============================================================================
@@ -1442,30 +1693,114 @@ function renderMLB(mlbScores) {
   cards.innerHTML = cardHtml;
 }
 
-// ── LLWS Tab (scaffold) ───────────────────────────────────────────────────────
-// Team assignments don't exist yet, so this just explains that and shows how
-// many live games ESPN's llb endpoint returned today, as a sanity check that
-// the data source is working. Once owners are mapped to teams, replace the
-// placeholder cards markup with real per-owner cards like renderMLB() does.
+// Same idea as formatMlbGameLine, for the LLWS "current game" snapshot.
+function formatLlwsGameLine(g) {
+  if (!g) return null;
+  const vsAt = g.isHome ? 'vs' : '@';
+  if (g.state === 'in') {
+    return `${vsAt} ${esc(g.opponentAbbr)} &nbsp;${g.teamScore}–${g.oppScore}&nbsp; · ${esc(g.detail || 'Live')}`;
+  }
+  if (g.state === 'post') {
+    return `${vsAt} ${esc(g.opponentAbbr)} &nbsp;Final ${g.teamScore}–${g.oppScore}`;
+  }
+  return `${vsAt} ${esc(g.opponentAbbr)} · ${esc(g.detail || 'Scheduled')}`;
+}
+
+// ── LLWS Team Cards ───────────────────────────────────────────────────────────
+// Mirrors renderMLB() closely, plus an explicit alive/eliminated badge. Since
+// OWNERS[].llwsTeam is null for every owner right now, every card currently
+// renders in its "not yet assigned" fallback state — this becomes a real
+// leaderboard the moment team assignments are filled in, no code changes needed.
 function renderLLWS(llwsScores) {
   const banner = document.getElementById('llws-banner');
   const cards  = document.getElementById('llws-cards');
 
-  banner.style.display = 'block';
-  banner.innerHTML = `<strong>LLWS team assignments not yet set.</strong> `
-    + `The tournament runs mid-to-late August 2026 in Williamsport, PA. `
-    + `Scoring will go live once owners are assigned to teams.`;
+  const anyAssigned = OWNERS.some(o => o.llwsTeam);
 
-  const gameCount = llwsGames.length;
-  const liveNote  = llwsHasLive ? ' <span class="live-dot">&#9679; LIVE</span>' : '';
-  const statusLine = gameCount > 0
-    ? `${gameCount} LLWS game${gameCount === 1 ? '' : 's'} found today via ESPN.${liveNote}`
-    : `No LLWS games scheduled today.`;
+  if (!anyAssigned) {
+    banner.style.display = 'block';
+    banner.innerHTML = `<strong>LLWS team assignments not yet set.</strong> `
+      + `The tournament bracket is underway in Williamsport, PA (Aug 19–30, 2026). `
+      + `Scoring will go live once owners are assigned to teams.`;
+  } else if (llwsWindowState === 'pre') {
+    banner.style.display = 'block';
+    banner.innerHTML = `<strong>LLWS bracket play begins August 19, 2026.</strong> Team assignments are locked in. Records will appear once the bracket starts.`;
+  } else if (llwsHasLive) {
+    banner.style.display = 'block';
+    banner.innerHTML = `<span class="live-dot">&#9679; LIVE</span> — LLWS games in progress. Records update every 20 seconds.`;
+  } else if (llwsWindowState === 'post') {
+    banner.style.display = 'block';
+    banner.innerHTML = `<strong>LLWS bracket complete.</strong> Records are final.`;
+  } else {
+    banner.style.display = 'none';
+  }
 
-  cards.innerHTML = `<div style="color:var(--muted); text-align:center; padding:2rem">
-    Check back once assignments are announced.<br>
-    <span style="font-size:0.75rem">${statusLine}</span>
-  </div>`;
+  const cardHtml = llwsScores.map(m => {
+    const r        = m.rank;
+    const rankCls  = r === 1 ? 'gold-r' : r === 2 ? 'silver-r' : r === 3 ? 'bronze-r' : '';
+    const rankDisp = r != null ? `#${r}` : '—';
+
+    const ptsBadge = m.llwsPts != null
+      ? `<span class="card-pts">${m.llwsPts} pts</span>`
+      : `<span class="card-pts pts-tbd">—</span>`;
+
+    const teamHtml = m.team
+      ? `<strong>${esc(m.team.name)}</strong> <span class="mlb-abbr">${esc(m.team.abbr)}</span>`
+      : `<span style="color:var(--muted)">Team not yet assigned</span>`;
+
+    const noGames   = !m.team || (m.wins + m.losses === 0);
+    const recordStr = noGames ? '—' : `${m.wins}–${m.losses}`;
+
+    let winPctStr;
+    if (noGames) {
+      winPctStr = '—';
+    } else if (m.winPct >= 1) {
+      winPctStr = '1.000';
+    } else {
+      winPctStr = '.' + String(Math.round(m.winPct * 1000)).padStart(3, '0');
+    }
+
+    const runsDisp = noGames ? '—' : m.runsScored;
+
+    // Explicit alive/eliminated badge — m.eliminated is null until a team is
+    // assigned, true/false once we can actually track it against real games.
+    const statusBadge = m.eliminated === true  ? `<span class="llws-status llws-out">Eliminated</span>`
+                       : m.eliminated === false ? `<span class="llws-status llws-alive">Alive</span>`
+                       : '';
+
+    const game     = m.team ? llwsTeamGame[m.team.abbr] : null;
+    const gameLine = formatLlwsGameLine(game);
+    const gameHtml = gameLine
+      ? `<div class="mlb-game-line${game.state === 'in' ? ' is-live' : ''}">${game.state === 'in' ? '<span class="live-dot">&#9679;</span> ' : ''}${gameLine}</div>`
+      : '';
+
+    return `<div class="open-card">
+      <div class="open-card-header">
+        <span class="card-rank ${rankCls}">${rankDisp}</span>
+        <span class="card-owner">${esc(m.owner.name)}</span>
+        <span class="card-sum">${teamHtml}</span>
+        ${statusBadge}
+        ${ptsBadge}
+      </div>
+      <div class="mlb-card-body">
+        <div class="mlb-stat">
+          <span class="mlb-stat-val">${esc(recordStr)}</span>
+          <span class="mlb-stat-lbl">W–L</span>
+        </div>
+        <div class="mlb-stat">
+          <span class="mlb-stat-val">${winPctStr}</span>
+          <span class="mlb-stat-lbl">Win %</span>
+        </div>
+        <div class="mlb-stat">
+          <span class="mlb-stat-val">${runsDisp}</span>
+          <span class="mlb-stat-lbl">Runs</span>
+        </div>
+      </div>
+      ${gameHtml}
+    </div>`;
+  }).join('');
+
+  cards.innerHTML = cardHtml;
 }
 
 // =============================================================================
@@ -1512,7 +1847,7 @@ async function syncNow() {
       localStorage.setItem(LS_KEY, JSON.stringify({
         leaderboardData, tournamentState, hasLive,
         mlbGames, mlbWindowState, mlbHasLive, mlbTeamGame,
-        llwsGames, llwsHasLive,
+        llwsGames, llwsWindowState, llwsHasLive, llwsTeamGame,
         updatedAt: Date.now(),
       }));
     } catch (_) { /* quota exceeded — not fatal */ }
@@ -1564,17 +1899,19 @@ function togglePause() {
   tournamentState = 'post';
   hasLive         = false;
 
-  // Restore only the MLB portion from localStorage cache — that data is still
-  // live (Aug 1–14 window) and safe to use from cache.
+  // Restore the MLB and LLWS portions from localStorage cache — that data is
+  // still live (within their respective windows) and safe to use from cache.
   try {
     const cached = JSON.parse(localStorage.getItem(LS_KEY) || 'null');
     if (cached) {
-      mlbGames       = cached.mlbGames       || [];
-      mlbWindowState = cached.mlbWindowState || 'pre';
-      mlbHasLive     = cached.mlbHasLive     || false;
-      mlbTeamGame    = cached.mlbTeamGame    || {};
-      llwsGames      = cached.llwsGames      || [];
-      llwsHasLive    = cached.llwsHasLive    || false;
+      mlbGames        = cached.mlbGames        || [];
+      mlbWindowState  = cached.mlbWindowState  || 'pre';
+      mlbHasLive      = cached.mlbHasLive      || false;
+      mlbTeamGame     = cached.mlbTeamGame     || {};
+      llwsGames       = cached.llwsGames       || [];
+      llwsWindowState = cached.llwsWindowState || 'pre';
+      llwsHasLive     = cached.llwsHasLive     || false;
+      llwsTeamGame    = cached.llwsTeamGame    || {};
     }
   } catch (_) { /* malformed cache — ignore */ }
 

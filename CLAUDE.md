@@ -108,12 +108,27 @@ ESPN uses accents and dots our hardcoded names don't (`Joaquín Niemann`, `J.J. 
 
 ### Event 3 — Little League World Series (LLWS) 🟡 SCAFFOLDED
 
-- **Dates:** Mid-to-late August 2026 (Williamsport, PA).
-- **How it works:** Each owner is assigned one or more LLWS teams. Final tournament placement determines points.
+- **Dates:** Opening Round Aug 19, 2026 → Championship Aug 30, 2026, in Williamsport, PA. (Confirmed directly off ESPN's live schedule — Regional Championships, the state/country qualifiers that decide the 20-team field, run Aug 10–15 and are excluded from scoring.)
+- **How it works:** Each owner is assigned exactly **one** LLWS team (`OWNERS[].llwsTeam`, singular — like `mlbTeam`, not an array).
+- **Scoring metric — hybrid of MLB's approach and bracket-aware tiebreaking:**
+  1. **Win percentage** (primary sort, same as MLB) — teams that advance further in a double-elim bracket generally accumulate more wins, so win% still tracks performance despite unequal game counts.
+  2. **Head-to-head** — if two tied teams played each other during the window, whoever won more of those meetings ranks higher. LLWS splits into separate US/International brackets that only meet in the World Championship, so most ties will have no head-to-head game — falls through to the next tiebreaker when that happens.
+  3. **Total wins** — rewards a team that advanced via the elimination (losers') bracket over one that lost early at a higher win%.
+  4. **Runs scored** — final tiebreaker, same as MLB.
+- **Elimination tracking:** Each team's `eliminated` status (true/false) is tracked explicitly, not inferred from win-loss count alone — a loss doesn't always end a team's tournament (see below).
 - **Assignments:** TBD.
-- **Live data source:** `site.api.espn.com/apis/site/v2/sports/baseball/llb/scoreboard` — confirmed working (live-tested against real games during 2026-08 tournament), see `llws-espn-api-reference.md` for full API notes.
-- **Notes:** No dedicated bracket endpoint; bracket structure must be inferred from game names/notes.
-- **Scaffold state (current):** Tab is enabled and fetches today's games from the `llb` endpoint on every sync (`fetchLLWSGames()`), storing lightly-parsed results in `llwsGames`. Nothing is attributed to an owner yet since `OWNERS[].llwsTeams` is empty for everyone — `computeLLWSScores()` is a stub returning null points/rank per owner, and the tab just shows a "team assignments not yet set" banner plus a live game count as a sanity check the feed works. Once assignments and the actual scoring rule (see Open Questions) are locked in, replace the stub scoring logic and the placeholder cards markup in `renderLLWS()` with real per-owner cards, mirroring how `computeMLBScores()`/`renderMLB()` work.
+- **Live data source:** `site.api.espn.com/apis/site/v2/sports/baseball/llb/scoreboard?dates=20260819-20260830&limit=200` — confirmed working, live-tested against the real 2026 tournament schedule. See `llws-espn-api-reference.md` for general API notes.
+- **Bracket round classification (`classifyLLWSHeadline()` in index.html):** ESPN has no structured "round" field, but each game's `notes[].headline` names the round in plain text — confirmed live against the real schedule:
+  | Headline contains | Category | Losing eliminates you? |
+  |---|---|---|
+  | "Opening Round" | `winners` | No — demoted to elimination bracket |
+  | "Double Elimination" | `winners` | No — demoted to elimination bracket |
+  | "Elimination Game" | `elimination` | **Yes** — this is your 2nd loss |
+  | "United States Championship" / "International Championship" | `side-championship` | **Yes** — single-elim, no rematch even on a 1st loss |
+  | "Consolation Game" | `consolation` | Already eliminated (3rd-place game between semifinal losers) |
+  | "Championship" (World Final) | `world-championship` | **Yes** — losing means runner-up |
+  | "Regional Championship" | `regional` | N/A — pre-LLWS qualifier, excluded from scoring entirely |
+- **Scaffold state (current):** Tab is enabled and fully wired — `fetchLLWSGames()` pulls the Aug 19–30 window every sync, `computeLLWSScores()` runs the real hybrid scoring + elimination logic, and `renderLLWS()` renders one card per owner (record, win%, runs, alive/eliminated badge, current-game line) mirroring `renderMLB()`. The only missing piece is `OWNERS[].llwsTeam` — it's `null` for every owner, so every card currently shows "Team not yet assigned" and all pts show `—`. Filling in the 8 team assignments (same shape as `mlbTeam`: `{ name, abbr }`, using the abbreviation ESPN returns in its `team.abbreviation` field) is the only step left to make this fully live.
 
 ---
 
@@ -138,8 +153,10 @@ ESPN uses accents and dots our hardcoded names don't (`Joaquín Niemann`, `J.J. 
 - Banner describes window state (pre / live / final / dev test mode).
 
 ### Tab 4 — LLWS 🟡 SCAFFOLDED
-- Tab enabled; panel shows a static banner ("team assignments not yet set") plus a placeholder message with a live count of today's LLWS games from ESPN (sanity check only — not scored).
-- No per-owner cards yet — those get built once team assignments and the exact scoring rule exist.
+- One card per owner, sorted by the hybrid win% → head-to-head → wins → runs rule (see Event 3 above).
+- Each card: rank badge · owner name · team name + abbr (or "Team not yet assigned") · alive/eliminated badge · draft pts badge.
+- Stats row: W–L record · win % · runs scored. Game line shows the team's current/next/last game, same as MLB.
+- Fully functional pipeline (fetch → score → render) — just waiting on `OWNERS[].llwsTeam` assignments to have real data to display.
 
 ---
 
@@ -180,7 +197,7 @@ llws-espn-api-reference.md      — ESPN unofficial API notes for the LLWS
 
 ## Open Questions / TBD
 
-- [ ] LLWS team assignments per owner
-- [ ] Exact LLWS scoring rule — CLAUDE.md says "final tournament placement determines points" but the precise mapping (how multiple teams per owner combine, what happens on ties, etc.) isn't defined yet
+- [ ] LLWS team assignments per owner (one team each — see Event 3 above)
 - [ ] Overall tiebreaker rule when two owners have equal total points across all three events
 - [x] Whether LLWS data is available via ESPN API — confirmed yes, `llb` scoreboard endpoint is live and working (see Event 3 above)
+- [x] Exact LLWS scoring rule — resolved: win% → head-to-head → wins → runs scored, with explicit elimination tracking (see Event 3 above)
