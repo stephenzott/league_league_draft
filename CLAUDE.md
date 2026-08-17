@@ -106,13 +106,14 @@ ESPN uses accents and dots our hardcoded names don't (`Joaquín Niemann`, `J.J. 
 
 ---
 
-### Event 3 — Little League World Series (LLWS) 🔲 NOT YET BUILT
+### Event 3 — Little League World Series (LLWS) 🟡 SCAFFOLDED
 
 - **Dates:** Mid-to-late August 2026 (Williamsport, PA).
 - **How it works:** Each owner is assigned one or more LLWS teams. Final tournament placement determines points.
 - **Assignments:** TBD.
-- **Live data source:** `site.api.espn.com/apis/site/v2/sports/baseball/llb/scoreboard` — confirmed working, see `llws-espn-api-reference.md` for full API notes.
+- **Live data source:** `site.api.espn.com/apis/site/v2/sports/baseball/llb/scoreboard` — confirmed working (live-tested against real games during 2026-08 tournament), see `llws-espn-api-reference.md` for full API notes.
 - **Notes:** No dedicated bracket endpoint; bracket structure must be inferred from game names/notes.
+- **Scaffold state (current):** Tab is enabled and fetches today's games from the `llb` endpoint on every sync (`fetchLLWSGames()`), storing lightly-parsed results in `llwsGames`. Nothing is attributed to an owner yet since `OWNERS[].llwsTeams` is empty for everyone — `computeLLWSScores()` is a stub returning null points/rank per owner, and the tab just shows a "team assignments not yet set" banner plus a live game count as a sanity check the feed works. Once assignments and the actual scoring rule (see Open Questions) are locked in, replace the stub scoring logic and the placeholder cards markup in `renderLLWS()` with real per-owner cards, mirroring how `computeMLBScores()`/`renderMLB()` work.
 
 ---
 
@@ -136,7 +137,9 @@ ESPN uses accents and dots our hardcoded names don't (`Joaquín Niemann`, `J.J. 
 - Stats row: W–L record · win % · runs scored (tiebreaker).
 - Banner describes window state (pre / live / final / dev test mode).
 
-### Tab 4 — LLWS 🔲 NOT YET BUILT
+### Tab 4 — LLWS 🟡 SCAFFOLDED
+- Tab enabled; panel shows a static banner ("team assignments not yet set") plus a placeholder message with a live count of today's LLWS games from ESPN (sanity check only — not scored).
+- No per-owner cards yet — those get built once team assignments and the exact scoring rule exist.
 
 ---
 
@@ -178,5 +181,6 @@ llws-espn-api-reference.md      — ESPN unofficial API notes for the LLWS
 ## Open Questions / TBD
 
 - [ ] LLWS team assignments per owner
+- [ ] Exact LLWS scoring rule — CLAUDE.md says "final tournament placement determines points" but the precise mapping (how multiple teams per owner combine, what happens on ties, etc.) isn't defined yet
 - [ ] Overall tiebreaker rule when two owners have equal total points across all three events
-- [ ] Whether LLWS data is available via ESPN API or requires manual entry fallback (`?admin`)
+- [x] Whether LLWS data is available via ESPN API — confirmed yes, `llb` scoreboard endpoint is live and working (see Event 3 above)

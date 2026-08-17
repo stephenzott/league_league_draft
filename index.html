@@ -446,7 +446,7 @@
   <button class="tab-btn active" onclick="showTab('overall', this)">Overall Standings</button>
   <button class="tab-btn" onclick="showTab('open', this)">⛳ The Open</button>
   <button class="tab-btn" onclick="showTab('mlb', this)">⚾ MLB</button>
-  <button class="tab-btn tab-disabled">🎯 LLWS</button>
+  <button class="tab-btn" onclick="showTab('llws', this)">🎯 LLWS</button>
 </nav>
 
 <!-- ── Main content ───────────────────────────────────────────────────────── -->
@@ -497,6 +497,15 @@
     </div>
   </div>
 
+  <!-- Tab 4: LLWS — Williamsport, PA, mid-to-late August 2026 -->
+  <div id="tab-llws" class="tab-panel">
+    <div class="section-label">Little League World Series · August 2026</div>
+    <div id="llws-banner" class="open-banner" style="display:none"></div>
+    <div id="llws-cards" class="open-cards">
+      <div style="color:var(--muted); text-align:center; padding:2rem">Loading…</div>
+    </div>
+  </div>
+
 </main>
 
 <script>
@@ -506,15 +515,18 @@
 
 // Each owner is assigned exactly 4 golfers via snake draft (groups A–H).
 // These assignments are fixed for the tournament and will not change.
+// llwsTeams is left empty ([]) for every owner — the LLWS field/bracket isn't
+// assigned to owners yet (see CLAUDE.md "Open Questions"). Once the random
+// draw happens, fill these in the same way golfers/mlbTeam are hardcoded above.
 const OWNERS = [
-  { id: 1, name: 'Matt',    golfers: ['Scottie Scheffler', 'Si Woo Kim', 'Shane Lowry', 'Harris English'],        mlbTeam: { name: 'San Francisco Giants',  abbr: 'SF'  } },
-  { id: 2, name: 'Keanan',  golfers: ['Xander Schauffele', 'Ludvig Åberg', 'Patrick Reed', 'Alex Fitzpatrick'],   mlbTeam: { name: 'Philadelphia Phillies', abbr: 'PHI' } },
-  { id: 3, name: 'Zach',    golfers: ['Viktor Hovland', 'Chris Gotterup', 'Joaquin Niemann', 'Patrick Cantlay'],  mlbTeam: { name: 'Boston Red Sox',        abbr: 'BOS' } },
-  { id: 4, name: 'Patrick', golfers: ['Jon Rahm', 'Tyrrell Hatton', 'Tom Kim', 'Bryson DeChambeau'],              mlbTeam: { name: 'New York Yankees',      abbr: 'NYY' } },
-  { id: 5, name: 'Derek',   golfers: ['Matt Fitzpatrick', 'Wyndham Clark', 'Sam Burns', 'JJ Spaun'],              mlbTeam: { name: 'Tampa Bay Rays',        abbr: 'TB'  } },
-  { id: 6, name: 'Cody',    golfers: ['Robert MacIntyre', 'Justin Rose', 'Min Woo Lee', 'Aaron Rai'],             mlbTeam: { name: 'Milwaukee Brewers',     abbr: 'MIL' } },
-  { id: 7, name: 'Josh',    golfers: ['Tommy Fleetwood', 'Collin Morikawa', 'Justin Thomas', 'Brooks Koepka'],    mlbTeam: { name: 'Los Angeles Dodgers',   abbr: 'LAD' } },
-  { id: 8, name: 'Stephen', golfers: ['Rory McIlroy', 'Cameron Young', 'Russell Henley', 'Hideki Matsuyama'],     mlbTeam: { name: 'Atlanta Braves',        abbr: 'ATL' } },
+  { id: 1, name: 'Matt',    golfers: ['Scottie Scheffler', 'Si Woo Kim', 'Shane Lowry', 'Harris English'],        mlbTeam: { name: 'San Francisco Giants',  abbr: 'SF'  }, llwsTeams: [] },
+  { id: 2, name: 'Keanan',  golfers: ['Xander Schauffele', 'Ludvig Åberg', 'Patrick Reed', 'Alex Fitzpatrick'],   mlbTeam: { name: 'Philadelphia Phillies', abbr: 'PHI' }, llwsTeams: [] },
+  { id: 3, name: 'Zach',    golfers: ['Viktor Hovland', 'Chris Gotterup', 'Joaquin Niemann', 'Patrick Cantlay'],  mlbTeam: { name: 'Boston Red Sox',        abbr: 'BOS' }, llwsTeams: [] },
+  { id: 4, name: 'Patrick', golfers: ['Jon Rahm', 'Tyrrell Hatton', 'Tom Kim', 'Bryson DeChambeau'],              mlbTeam: { name: 'New York Yankees',      abbr: 'NYY' }, llwsTeams: [] },
+  { id: 5, name: 'Derek',   golfers: ['Matt Fitzpatrick', 'Wyndham Clark', 'Sam Burns', 'JJ Spaun'],              mlbTeam: { name: 'Tampa Bay Rays',        abbr: 'TB'  }, llwsTeams: [] },
+  { id: 6, name: 'Cody',    golfers: ['Robert MacIntyre', 'Justin Rose', 'Min Woo Lee', 'Aaron Rai'],             mlbTeam: { name: 'Milwaukee Brewers',     abbr: 'MIL' }, llwsTeams: [] },
+  { id: 7, name: 'Josh',    golfers: ['Tommy Fleetwood', 'Collin Morikawa', 'Justin Thomas', 'Brooks Koepka'],    mlbTeam: { name: 'Los Angeles Dodgers',   abbr: 'LAD' }, llwsTeams: [] },
+  { id: 8, name: 'Stephen', golfers: ['Rory McIlroy', 'Cameron Young', 'Russell Henley', 'Hideki Matsuyama'],     mlbTeam: { name: 'Atlanta Braves',        abbr: 'ATL' }, llwsTeams: [] },
 ];
 
 // ESPN's unofficial PGA/DP World Tour leaderboard endpoint.
@@ -588,6 +600,16 @@ const MLB_DATE_END   = '20260814';
 
 const MLB_URL = `https://site.api.espn.com/apis/site/v2/sports/baseball/mlb/scoreboard?dates=${MLB_DATE_START}-${MLB_DATE_END}&limit=200`;
 
+// ── LLWS constants ────────────────────────────────────────────────────────────
+// ESPN's unofficial "Little League Baseball" league slug within the baseball
+// sport (see llws-espn-api-reference.md for how this was confirmed). No
+// exact tournament window is locked in yet, so — per that doc's suggested
+// approach — we hit the scoreboard with no `dates` param, which returns
+// "today's games." That's enough to verify the endpoint works and to start
+// collecting raw game data ahead of team assignments; once owners are mapped
+// to LLWS teams we can switch this to a fixed date-range URL like MLB_URL.
+const LLWS_URL = 'https://site.api.espn.com/apis/site/v2/sports/baseball/llb/scoreboard';
+
 // =============================================================================
 // NAME NORMALIZATION
 // ESPN uses characters we might not match exactly, e.g.:
@@ -632,6 +654,12 @@ let mlbGames       = [];     // processed game objects for the scoring window
 let mlbWindowState = 'pre';  // 'pre', 'active', or 'post' relative to Aug 1-14
 let mlbHasLive     = false;  // true when any MLB game is currently in progress
 let mlbTeamGame    = {};     // abbr → the single most-relevant game to show on that team's tile
+
+// LLWS state — fetched and stored ahead of team assignments so the endpoint
+// is verified working, but nothing here is attributed to an owner yet since
+// there's no owner→team mapping (see OWNERS[].llwsTeams, all empty for now).
+let llwsGames  = [];     // today's games, lightly parsed (see parseLLWSEvent)
+let llwsHasLive = false; // true when any LLWS game is currently in progress
 
 // =============================================================================
 // UTILITIES
@@ -862,6 +890,47 @@ async function fetchMLBGames() {
         awayScore: parseInt(away.score || '0', 10),
       };
     });
+}
+
+// =============================================================================
+// LLWS: FETCH GAME RESULTS (scaffold — not yet attributed to owners)
+// There's no dedicated bracket endpoint (see llws-espn-api-reference.md), so
+// for now we just pull "today's games" and store a lightly-parsed version.
+// Once team assignments exist, this is the place to add bracket-position
+// tracking and hook results into a scoring function, mirroring fetchMLBGames.
+// =============================================================================
+
+function parseLLWSEvent(e) {
+  const comp  = e.competitions?.[0];
+  const home  = comp?.competitors?.find(c => c.homeAway === 'home');
+  const away  = comp?.competitors?.find(c => c.homeAway === 'away');
+  // ESPN sometimes carries round/bracket info in notes[].headline (e.g. "US
+  // Bracket", "International Bracket") rather than a structured field.
+  const noteHeadline = comp?.notes?.[0]?.headline || null;
+
+  return {
+    id:            e.id,
+    name:          e.name,
+    shortName:     e.shortName,
+    noteHeadline,
+    state:         comp?.status?.type?.state || 'pre',  // 'pre' | 'in' | 'post'
+    homeAbbr:      home?.team?.abbreviation ?? null,
+    awayAbbr:      away?.team?.abbreviation ?? null,
+    homeName:      home?.team?.displayName ?? null,
+    awayName:      away?.team?.displayName ?? null,
+    homeScore:     home ? parseInt(home.score || '0', 10) : null,
+    awayScore:     away ? parseInt(away.score || '0', 10) : null,
+  };
+}
+
+async function fetchLLWSGames() {
+  const resp = await fetch(LLWS_URL);
+  if (!resp.ok) throw new Error(`ESPN LLWS API returned HTTP ${resp.status}`);
+  const data = await resp.json();
+
+  const events = data.events || [];
+  llwsGames   = events.map(parseLLWSEvent);
+  llwsHasLive = events.some(e => e.competitions?.[0]?.status?.type?.state === 'in');
 }
 
 // =============================================================================
@@ -1111,6 +1180,24 @@ function computeMLBScores() {
 }
 
 // =============================================================================
+// LLWS SCORING (scaffold)
+// No owner→team assignments exist yet, so there's nothing to score. This stub
+// returns one entry per owner with null points/rank — same shape computeMLBScores()
+// returns — so renderLLWS() and a future renderOverall() hookup don't need to
+// change once real scoring logic (based on final bracket placement) is added.
+// =============================================================================
+
+function computeLLWSScores() {
+  return OWNERS.map(o => ({
+    ownerId:  o.id,
+    owner:    o,
+    teams:    o.llwsTeams,
+    llwsPts:  null,
+    rank:     null,
+  }));
+}
+
+// =============================================================================
 // RENDERING
 // =============================================================================
 
@@ -1355,6 +1442,32 @@ function renderMLB(mlbScores) {
   cards.innerHTML = cardHtml;
 }
 
+// ── LLWS Tab (scaffold) ───────────────────────────────────────────────────────
+// Team assignments don't exist yet, so this just explains that and shows how
+// many live games ESPN's llb endpoint returned today, as a sanity check that
+// the data source is working. Once owners are mapped to teams, replace the
+// placeholder cards markup with real per-owner cards like renderMLB() does.
+function renderLLWS(llwsScores) {
+  const banner = document.getElementById('llws-banner');
+  const cards  = document.getElementById('llws-cards');
+
+  banner.style.display = 'block';
+  banner.innerHTML = `<strong>LLWS team assignments not yet set.</strong> `
+    + `The tournament runs mid-to-late August 2026 in Williamsport, PA. `
+    + `Scoring will go live once owners are assigned to teams.`;
+
+  const gameCount = llwsGames.length;
+  const liveNote  = llwsHasLive ? ' <span class="live-dot">&#9679; LIVE</span>' : '';
+  const statusLine = gameCount > 0
+    ? `${gameCount} LLWS game${gameCount === 1 ? '' : 's'} found today via ESPN.${liveNote}`
+    : `No LLWS games scheduled today.`;
+
+  cards.innerHTML = `<div style="color:var(--muted); text-align:center; padding:2rem">
+    Check back once assignments are announced.<br>
+    <span style="font-size:0.75rem">${statusLine}</span>
+  </div>`;
+}
+
 // =============================================================================
 // SYNC & POLLING
 // Fetches fresh data from ESPN on a timer.  Polls faster (20s vs 90s) when
@@ -1371,23 +1484,25 @@ async function syncNow() {
   if (syncPaused) return;
   setStatus('syncing', '&#8635; Syncing…');
 
-  // Fetch both data sources in parallel; use allSettled so a failure on one
+  // Fetch all data sources in parallel; use allSettled so a failure on one
   // side doesn't block rendering with whatever data we do have.
-  const results = await Promise.allSettled([fetchLeaderboard(), fetchMLBGames()]);
+  const results = await Promise.allSettled([fetchLeaderboard(), fetchMLBGames(), fetchLLWSGames()]);
   const anyError = results.some(r => r.status === 'rejected');
   if (anyError) {
     results.forEach((r, i) => {
-      if (r.status === 'rejected') console.error(['Golf', 'MLB'][i] + ' fetch failed:', r.reason);
+      if (r.status === 'rejected') console.error(['Golf', 'MLB', 'LLWS'][i] + ' fetch failed:', r.reason);
     });
   }
 
   // Compute scores and render regardless — stale data is better than blank.
   const openScores = computeOpenScores();
   const mlbScores  = computeMLBScores();
+  const llwsScores = computeLLWSScores();
 
   renderOverall(openScores, mlbScores);
   renderOpen(openScores);
   renderMLB(mlbScores);
+  renderLLWS(llwsScores);
 
   // Save everything to localStorage so the next page load feels instant.
   // We only save when at least one fetch succeeded to avoid caching stale state
@@ -1397,13 +1512,14 @@ async function syncNow() {
       localStorage.setItem(LS_KEY, JSON.stringify({
         leaderboardData, tournamentState, hasLive,
         mlbGames, mlbWindowState, mlbHasLive, mlbTeamGame,
+        llwsGames, llwsHasLive,
         updatedAt: Date.now(),
       }));
     } catch (_) { /* quota exceeded — not fatal */ }
   }
 
   const t      = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-  const isLive = hasLive || mlbHasLive;
+  const isLive = hasLive || mlbHasLive || llwsHasLive;
 
   if (anyError) {
     setStatus('error', '&#10007; Sync error');
@@ -1457,14 +1573,18 @@ function togglePause() {
       mlbWindowState = cached.mlbWindowState || 'pre';
       mlbHasLive     = cached.mlbHasLive     || false;
       mlbTeamGame    = cached.mlbTeamGame    || {};
+      llwsGames      = cached.llwsGames      || [];
+      llwsHasLive    = cached.llwsHasLive    || false;
     }
   } catch (_) { /* malformed cache — ignore */ }
 
   const openScores = computeOpenScores();
   const mlbScores  = computeMLBScores();
+  const llwsScores = computeLLWSScores();
   renderOverall(openScores, mlbScores);
   renderOpen(openScores);
   renderMLB(mlbScores);
+  renderLLWS(llwsScores);
   setStatus('syncing', '&#8635; Refreshing…');
 
   syncNow();
