@@ -1560,12 +1560,26 @@ function renderOverall(openScores, mlbScores, llwsScores) {
     return { owner, openPts, mlbPts, llwsPts, totalPts };
   });
 
-  // Sort descending by total; nulls go last.
+  // When two or more owners tie on totalPts, break the tie using the
+  // pre-run 100 Yard Rush order (TIEBREAKER_RESULT above) — earlier in that
+  // order picks first among the tied owners. This only applies to ties in
+  // the combined total, not LLWS's own internal win%/h2h/wins/runs tiebreak.
+  const tiebreakIndex = {};
+  if (TIEBREAKER_RESULT) {
+    TIEBREAKER_RESULT.order.forEach((name, i) => { tiebreakIndex[name] = i; });
+  }
+
+  // Sort descending by total; nulls go last; ties broken by tiebreakIndex.
   combined.sort((a, b) => {
     if (a.totalPts === null && b.totalPts === null) return 0;
     if (a.totalPts === null) return 1;
     if (b.totalPts === null) return -1;
-    return b.totalPts - a.totalPts;
+    if (a.totalPts !== b.totalPts) return b.totalPts - a.totalPts;
+
+    const aIdx = tiebreakIndex[a.owner.name];
+    const bIdx = tiebreakIndex[b.owner.name];
+    if (aIdx !== undefined && bIdx !== undefined) return aIdx - bIdx;
+    return 0;
   });
 
   const rows = combined.map((c, i) => {
