@@ -437,6 +437,24 @@
     }
     .llws-alive { background: #0e3020; color: #3ecf90; }  /* matches .pos-top5 green */
     .llws-out   { background: #2a1010; color: #a05050; }  /* matches .pos-mc red */
+
+    /* Links out to Little League's official bracket + schedule/records pages,
+       shown just under the LLWS section label. */
+    .llws-links {
+      display: flex;
+      gap: 1.25rem;
+      margin: -0.5rem 0 1rem;
+      font-size: 0.78rem;
+    }
+    .llws-links a {
+      color: var(--gold);
+      text-decoration: none;
+      border-bottom: 1px solid transparent;
+      transition: border-color 0.15s ease;
+    }
+    .llws-links a:hover {
+      border-bottom-color: var(--gold);
+    }
   </style>
 </head>
 <body>
@@ -517,6 +535,10 @@
   <!-- Tab 4: LLWS — Williamsport, PA, mid-to-late August 2026 -->
   <div id="tab-llws" class="tab-panel">
     <div class="section-label">Little League World Series · August 2026</div>
+    <div class="llws-links">
+      <a href="https://www.littleleague.org/world-series/2026/llbws/bracket/" target="_blank" rel="noopener noreferrer">Bracket ↗</a>
+      <a href="https://www.littleleague.org/world-series/2026/llbws/tournaments/world-series/" target="_blank" rel="noopener noreferrer">Schedule &amp; Records ↗</a>
+    </div>
     <div id="llws-banner" class="open-banner" style="display:none"></div>
     <div id="llws-cards" class="open-cards">
       <div style="color:var(--muted); text-align:center; padding:2rem">Loading…</div>
@@ -532,20 +554,23 @@
 
 // Each owner is assigned exactly 4 golfers via snake draft (groups A–H).
 // These assignments are fixed for the tournament and will not change.
-// llwsTeam is left null for every owner — the LLWS field/bracket isn't
-// assigned to owners yet (see CLAUDE.md "Open Questions"). Owners get exactly
-// one LLWS team each (unlike golfers/1, this is a single object like mlbTeam,
-// not an array). Once the random draw happens, fill these in the same way
-// mlbTeam is hardcoded above — e.g. { name: 'Phenix City AL', abbr: 'AL' }.
+// llwsTeam.name shows the bracket region label (e.g. "Southeast"), not the
+// specific city/school ESPN uses — matches how the owner picked their team.
+// llwsTeam.abbr is ESPN's team.abbreviation code, which is what actually
+// drives live-game matching (see llwsTeamGame). Owners get exactly one LLWS
+// team each (single object like mlbTeam, not an array like golfers).
+// PA (West Chester, Mid-Atlantic) hadn't appeared in ESPN's live feed yet as
+// of this assignment — the abbr is set ahead of time so matching is ready
+// the moment ESPN lists that team's games.
 const OWNERS = [
-  { id: 1, name: 'Matt',    golfers: ['Scottie Scheffler', 'Si Woo Kim', 'Shane Lowry', 'Harris English'],        mlbTeam: { name: 'San Francisco Giants',  abbr: 'SF'  }, llwsTeam: null },
-  { id: 2, name: 'Keanan',  golfers: ['Xander Schauffele', 'Ludvig Åberg', 'Patrick Reed', 'Alex Fitzpatrick'],   mlbTeam: { name: 'Philadelphia Phillies', abbr: 'PHI' }, llwsTeam: null },
-  { id: 3, name: 'Zach',    golfers: ['Viktor Hovland', 'Chris Gotterup', 'Joaquin Niemann', 'Patrick Cantlay'],  mlbTeam: { name: 'Boston Red Sox',        abbr: 'BOS' }, llwsTeam: null },
-  { id: 4, name: 'Patrick', golfers: ['Jon Rahm', 'Tyrrell Hatton', 'Tom Kim', 'Bryson DeChambeau'],              mlbTeam: { name: 'New York Yankees',      abbr: 'NYY' }, llwsTeam: null },
-  { id: 5, name: 'Derek',   golfers: ['Matt Fitzpatrick', 'Wyndham Clark', 'Sam Burns', 'JJ Spaun'],              mlbTeam: { name: 'Tampa Bay Rays',        abbr: 'TB'  }, llwsTeam: null },
-  { id: 6, name: 'Cody',    golfers: ['Robert MacIntyre', 'Justin Rose', 'Min Woo Lee', 'Aaron Rai'],             mlbTeam: { name: 'Milwaukee Brewers',     abbr: 'MIL' }, llwsTeam: null },
-  { id: 7, name: 'Josh',    golfers: ['Tommy Fleetwood', 'Collin Morikawa', 'Justin Thomas', 'Brooks Koepka'],    mlbTeam: { name: 'Los Angeles Dodgers',   abbr: 'LAD' }, llwsTeam: null },
-  { id: 8, name: 'Stephen', golfers: ['Rory McIlroy', 'Cameron Young', 'Russell Henley', 'Hideki Matsuyama'],     mlbTeam: { name: 'Atlanta Braves',        abbr: 'ATL' }, llwsTeam: null },
+  { id: 1, name: 'Matt',    golfers: ['Scottie Scheffler', 'Si Woo Kim', 'Shane Lowry', 'Harris English'],        mlbTeam: { name: 'San Francisco Giants',  abbr: 'SF'  }, llwsTeam: { name: 'Southeast',      abbr: 'AL'  } },
+  { id: 2, name: 'Keanan',  golfers: ['Xander Schauffele', 'Ludvig Åberg', 'Patrick Reed', 'Alex Fitzpatrick'],   mlbTeam: { name: 'Philadelphia Phillies', abbr: 'PHI' }, llwsTeam: { name: 'Latin America',  abbr: 'NCA' } },
+  { id: 3, name: 'Zach',    golfers: ['Viktor Hovland', 'Chris Gotterup', 'Joaquin Niemann', 'Patrick Cantlay'],  mlbTeam: { name: 'Boston Red Sox',        abbr: 'BOS' }, llwsTeam: { name: 'Caribbean',      abbr: 'DOM' } },
+  { id: 4, name: 'Patrick', golfers: ['Jon Rahm', 'Tyrrell Hatton', 'Tom Kim', 'Bryson DeChambeau'],              mlbTeam: { name: 'New York Yankees',      abbr: 'NYY' }, llwsTeam: { name: 'Japan',          abbr: 'JPN' } },
+  { id: 5, name: 'Derek',   golfers: ['Matt Fitzpatrick', 'Wyndham Clark', 'Sam Burns', 'JJ Spaun'],              mlbTeam: { name: 'Tampa Bay Rays',        abbr: 'TB'  }, llwsTeam: { name: 'Canada',         abbr: 'CAN' } },
+  { id: 6, name: 'Cody',    golfers: ['Robert MacIntyre', 'Justin Rose', 'Min Woo Lee', 'Aaron Rai'],             mlbTeam: { name: 'Milwaukee Brewers',     abbr: 'MIL' }, llwsTeam: { name: 'Asia Pacific',   abbr: 'KOR' } },
+  { id: 7, name: 'Josh',    golfers: ['Tommy Fleetwood', 'Collin Morikawa', 'Justin Thomas', 'Brooks Koepka'],    mlbTeam: { name: 'Los Angeles Dodgers',   abbr: 'LAD' }, llwsTeam: { name: 'West',           abbr: 'CA'  } },
+  { id: 8, name: 'Stephen', golfers: ['Rory McIlroy', 'Cameron Young', 'Russell Henley', 'Hideki Matsuyama'],     mlbTeam: { name: 'Atlanta Braves',        abbr: 'ATL' }, llwsTeam: { name: 'Mid-Atlantic',   abbr: 'PA'  } },
 ];
 
 // ESPN's unofficial PGA/DP World Tour leaderboard endpoint.
@@ -732,9 +757,8 @@ let mlbHasLive     = false;  // true when any MLB game is currently in progress
 let mlbTeamGame    = {};     // abbr → the single most-relevant game to show on that team's tile
 
 // LLWS state — parallel to the MLB state above. Fetched and computed fully
-// (including elimination tracking) even though nothing is attributed to an
-// owner yet, since there's no owner→team mapping (OWNERS[].llwsTeam is null
-// for everyone until the draw happens).
+// (including elimination tracking) and attributed to owners via
+// OWNERS[].llwsTeam.
 let llwsGames      = [];     // parsed games within the LLWS_DATE_START/END window
 let llwsWindowState = 'pre'; // 'pre', 'active', or 'post' relative to the window
 let llwsHasLive    = false;  // true when any LLWS game is currently in progress
@@ -973,11 +997,10 @@ async function fetchMLBGames() {
 
 // =============================================================================
 // LLWS: FETCH GAME RESULTS
-// Not yet attributed to any owner (OWNERS[].llwsTeam is null for everyone),
-// but otherwise this mirrors fetchMLBGames() exactly: parse every game in the
-// tournament window, classify it by bracket round (see classifyLLWSHeadline
-// above), and keep both (a) completed games for scoring and (b) a per-team
-// "current game" snapshot for the card UI.
+// Mirrors fetchMLBGames() exactly: parse every game in the tournament
+// window, classify it by bracket round (see classifyLLWSHeadline above), and
+// keep both (a) completed games for scoring and (b) a per-team "current
+// game" snapshot for the card UI.
 // =============================================================================
 
 function parseLLWSEvent(e) {
@@ -1707,10 +1730,10 @@ function formatLlwsGameLine(g) {
 }
 
 // ── LLWS Team Cards ───────────────────────────────────────────────────────────
-// Mirrors renderMLB() closely, plus an explicit alive/eliminated badge. Since
-// OWNERS[].llwsTeam is null for every owner right now, every card currently
-// renders in its "not yet assigned" fallback state — this becomes a real
-// leaderboard the moment team assignments are filled in, no code changes needed.
+// Mirrors renderMLB() closely, plus an explicit alive/eliminated badge.
+// Falls back to a "not yet assigned" banner if any owner is ever missing a
+// team (e.g. OWNERS[].llwsTeam reset to null), otherwise renders the
+// leaderboard.
 function renderLLWS(llwsScores) {
   const banner = document.getElementById('llws-banner');
   const cards  = document.getElementById('llws-cards');
