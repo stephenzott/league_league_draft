@@ -1476,11 +1476,11 @@ function computeLLWSScores() {
 // =============================================================================
 
 // ── Overall Standings Table ───────────────────────────────────────────────────
-// Merges Open + MLB (+ eventually LLWS) into a single ranked table.
-// Owners are re-sorted here by combined total pts independent of each event's
-// own internal ordering.
+// Merges Open + MLB + LLWS into a single ranked table. Owners are re-sorted
+// here by combined total pts independent of each event's own internal
+// ordering.
 
-function renderOverall(openScores, mlbScores) {
+function renderOverall(openScores, mlbScores, llwsScores) {
   const tbody = document.getElementById('overall-tbody');
 
   // Build lookup maps so we can join on owner ID.
@@ -1490,14 +1490,18 @@ function renderOverall(openScores, mlbScores) {
   const mlbByOwner = {};
   mlbScores.forEach(m => { mlbByOwner[m.ownerId] = m; });
 
+  const llwsByOwner = {};
+  llwsScores.forEach(l => { llwsByOwner[l.ownerId] = l; });
+
   // Compute a combined row for each owner.
   const combined = OWNERS.map(owner => {
     const openPts = openByOwner[owner.id]?.openPts ?? null;
     const mlbPts  = mlbByOwner[owner.id]?.mlbPts  ?? null;
-    const anyPts  = openPts !== null || mlbPts !== null;
+    const llwsPts = llwsByOwner[owner.id]?.llwsPts ?? null;
+    const anyPts  = openPts !== null || mlbPts !== null || llwsPts !== null;
     // Sum only the events that have data; treat null as 0 for arithmetic.
-    const totalPts = anyPts ? (openPts ?? 0) + (mlbPts ?? 0) : null;
-    return { owner, openPts, mlbPts, totalPts };
+    const totalPts = anyPts ? (openPts ?? 0) + (mlbPts ?? 0) + (llwsPts ?? 0) : null;
+    return { owner, openPts, mlbPts, llwsPts, totalPts };
   });
 
   // Sort descending by total; nulls go last.
@@ -1515,6 +1519,7 @@ function renderOverall(openScores, mlbScores) {
 
     const openCell  = c.openPts  != null ? `<span class="pts-val">${c.openPts}</span>`  : `<span class="pts-na">—</span>`;
     const mlbCell   = c.mlbPts   != null ? `<span class="pts-val">${c.mlbPts}</span>`   : `<span class="pts-na">—</span>`;
+    const llwsCell  = c.llwsPts  != null ? `<span class="pts-val">${c.llwsPts}</span>`  : `<span class="pts-na">—</span>`;
     const totalCell = c.totalPts != null ? `<span class="pts-val">${c.totalPts}</span>` : `<span class="pts-na">—</span>`;
 
     return `<tr>
@@ -1522,7 +1527,7 @@ function renderOverall(openScores, mlbScores) {
       <td class="owner-cell">${esc(c.owner.name)}</td>
       <td class="pts-cell">${openCell}</td>
       <td class="pts-cell">${mlbCell}</td>
-      <td class="pts-cell"><span class="pts-na">—</span></td>
+      <td class="pts-cell">${llwsCell}</td>
       <td class="pts-cell">${totalCell}</td>
       <td class="pick-cell ${pickCls}">${ordinal(r)}</td>
     </tr>`;
@@ -1857,7 +1862,7 @@ async function syncNow() {
   const mlbScores  = computeMLBScores();
   const llwsScores = computeLLWSScores();
 
-  renderOverall(openScores, mlbScores);
+  renderOverall(openScores, mlbScores, llwsScores);
   renderOpen(openScores);
   renderMLB(mlbScores);
   renderLLWS(llwsScores);
@@ -1941,7 +1946,7 @@ function togglePause() {
   const openScores = computeOpenScores();
   const mlbScores  = computeMLBScores();
   const llwsScores = computeLLWSScores();
-  renderOverall(openScores, mlbScores);
+  renderOverall(openScores, mlbScores, llwsScores);
   renderOpen(openScores);
   renderMLB(mlbScores);
   renderLLWS(llwsScores);
