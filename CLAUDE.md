@@ -27,7 +27,7 @@ Each event awards points based on finish/rank among the 8 owners:
 
 Points from all three events sum to produce the overall draft order.
 
-**Overall tiebreaker:** TBD.
+**Overall tiebreaker:** If two or more owners are tied on total points, the tie is broken with a [100 Yard Rush](https://100yardrush.com/rush/v/UD28Wqijm6) draft-order randomizer replay — see the **Tiebreaker** tab.
 
 ---
 
@@ -174,6 +174,10 @@ Owner-drawn regions, mapped to ESPN's `team.abbreviation` code for the specific 
 - Stats row: W–L record · win % · runs scored. Game line shows the team's current/next/last game, same as MLB.
 - Fully live pipeline (fetch → score → render) with all 8 `OWNERS[].llwsTeam` assignments filled in.
 
+### Tab 5 — Tiebreaker ✅ BUILT
+- Static tab, no live data or ESPN fetch.
+- Short explanation of the overall tiebreaker rule, plus a button linking out to the [100 Yard Rush](https://100yardrush.com/rush/v/UD28Wqijm6) draft-order randomizer replay (opens in a new tab — the site blocks iframing via `X-Frame-Options: DENY`).
+
 ---
 
 ## File Structure
@@ -214,6 +218,6 @@ llws-espn-api-reference.md      — ESPN unofficial API notes for the LLWS
 ## Open Questions / TBD
 
 - [x] LLWS team assignments per owner — resolved (one team each — see Event 3 above). Note: Stephen's team (Mid-Atlantic, PA / West Chester) wasn't yet in ESPN's live feed as of assignment; abbr is pre-filled so scoring activates automatically once ESPN lists it.
-- [ ] Overall tiebreaker rule when two owners have equal total points across all three events
+- [x] Overall tiebreaker rule when two owners have equal total points — resolved: a [100 Yard Rush](https://100yardrush.com/rush/v/UD28Wqijm6) draft-order randomizer replay, linked from the Tiebreaker tab
 - [x] Whether LLWS data is available via ESPN API — confirmed yes, `llb` scoreboard endpoint is live and working (see Event 3 above)
 - [x] Exact LLWS scoring rule — resolved: win% → head-to-head → wins → runs scored, with explicit elimination tracking (see Event 3 above)
