@@ -1447,6 +1447,15 @@ function computeLLWSScores() {
     if (!a.team) return 1;
     if (!b.team) return -1;
 
+    // A team with 0 games played has no evidence behind its 0 winPct — it's
+    // not the same as a team that's actually 0-1. Without this check the two
+    // are indistinguishable to the comparator below and an unplayed team can
+    // land in the middle of (or above) teams with a real losing record,
+    // purely by accident of array order. Always rank "has played" first.
+    const aPlayed = a.wins + a.losses > 0;
+    const bPlayed = b.wins + b.losses > 0;
+    if (aPlayed !== bPlayed) return aPlayed ? -1 : 1;
+
     if (b.winPct !== a.winPct) return b.winPct - a.winPct;
 
     const h2h = getLLWSHeadToHead(a.team.abbr, b.team.abbr, h2hMap);
