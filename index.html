@@ -1458,6 +1458,11 @@ function computeLLWSScores() {
 
     if (b.winPct !== a.winPct) return b.winPct - a.winPct;
 
+    // Being alive outranks every remaining tiebreaker (head-to-head, total
+    // wins, runs scored) — a team still in the tournament should never be
+    // ranked below one that's already out, regardless of past stats.
+    if (a.eliminated !== b.eliminated) return a.eliminated ? 1 : -1;
+
     const h2h = getLLWSHeadToHead(a.team.abbr, b.team.abbr, h2hMap);
     if (h2h && h2h.aWins !== h2h.bWins) return h2h.bWins - h2h.aWins;
 
