@@ -455,6 +455,36 @@
     .llws-links a:hover {
       border-bottom-color: var(--gold);
     }
+
+    /* ── Tiebreaker tab ── */
+    /* Single static card — explanation plus a link out to the randomizer
+       replay. The actual result is intentionally not shown on the page —
+       owners have to open the replay themselves to see the outcome. */
+    .tiebreaker-card {
+      background: rgba(22,16,10,0.95);
+      border: 1px solid var(--border);
+      border-left: 4px solid var(--accent);
+      border-radius: 8px;
+      padding: 1.5rem;
+      max-width: 40rem;
+    }
+    .tiebreaker-card p {
+      color: var(--text);
+      line-height: 1.6;
+      margin: 0 0 1.25rem;
+    }
+    .tiebreaker-card strong { color: var(--gold); }
+    .tiebreaker-link {
+      display: inline-block;
+      background: var(--accent);
+      color: var(--text);
+      font-weight: 700;
+      text-decoration: none;
+      padding: 0.65rem 1.25rem;
+      border-radius: 6px;
+      transition: opacity 0.15s ease;
+    }
+    .tiebreaker-link:hover { opacity: 0.85; }
   </style>
 </head>
 <body>
@@ -482,6 +512,7 @@
   <button class="tab-btn" onclick="showTab('open', this)">⛳ The Open</button>
   <button class="tab-btn" onclick="showTab('mlb', this)">⚾ MLB</button>
   <button class="tab-btn" onclick="showTab('llws', this)">🏟️ LLWS</button>
+  <button class="tab-btn" onclick="showTab('tiebreaker', this)">🎲 Tiebreaker</button>
 </nav>
 
 <!-- ── Main content ───────────────────────────────────────────────────────── -->
@@ -545,6 +576,22 @@
     </div>
   </div>
 
+  <!-- Tab 5: Overall tiebreaker — static link-out, no live data -->
+  <div id="tab-tiebreaker" class="tab-panel">
+    <div class="section-label">Overall Tiebreaker</div>
+    <div class="tiebreaker-card">
+      <p>
+        If two or more owners are tied on total points across all three events,
+        the tie is broken with a <strong>100 Yard Rush</strong> draft-order
+        randomizer — a shareable replay link that decides the order among the
+        tied owners.
+      </p>
+      <a class="tiebreaker-link" href="https://100yardrush.com/rush/v/9Lttx4ze0x" target="_blank" rel="noopener noreferrer">
+        Open Tiebreaker Randomizer ↗
+      </a>
+    </div>
+  </div>
+
 </main>
 
 <script>
@@ -572,6 +619,15 @@ const OWNERS = [
   { id: 7, name: 'Josh',    golfers: ['Tommy Fleetwood', 'Collin Morikawa', 'Justin Thomas', 'Brooks Koepka'],    mlbTeam: { name: 'Los Angeles Dodgers',   abbr: 'LAD' }, llwsTeam: { name: 'West',           abbr: 'CA'  } },
   { id: 8, name: 'Stephen', golfers: ['Rory McIlroy', 'Cameron Young', 'Russell Henley', 'Hideki Matsuyama'],     mlbTeam: { name: 'Atlanta Braves',        abbr: 'ATL' }, llwsTeam: { name: 'Mid-Atlantic',   abbr: 'PA'  } },
 ];
+
+// The tiebreaker has already been run (in advance, for fairness), but the
+// result is intentionally NOT rendered anywhere on the page — owners have
+// to click through to replayLink and watch it themselves rather than read
+// a spoiler here. Kept as a hardcoded record for reference / future use.
+const TIEBREAKER_RESULT = {
+  order: ['Matt', 'Keanan', 'Zach', 'Stephen', 'Cody', 'Josh', 'Patrick', 'Derek'],
+  replayLink: 'https://100yardrush.com/rush/v/9Lttx4ze0x',
+};
 
 // ESPN's unofficial PGA/DP World Tour leaderboard endpoint.
 // Returns all active tournaments including The Open Championship.
@@ -1518,12 +1574,26 @@ function renderOverall(openScores, mlbScores, llwsScores) {
     return { owner, openPts, mlbPts, llwsPts, totalPts };
   });
 
-  // Sort descending by total; nulls go last.
+  // When two or more owners tie on totalPts, break the tie using the
+  // pre-run 100 Yard Rush order (TIEBREAKER_RESULT above) — earlier in that
+  // order picks first among the tied owners. This only applies to ties in
+  // the combined total, not LLWS's own internal win%/h2h/wins/runs tiebreak.
+  const tiebreakIndex = {};
+  if (TIEBREAKER_RESULT) {
+    TIEBREAKER_RESULT.order.forEach((name, i) => { tiebreakIndex[name] = i; });
+  }
+
+  // Sort descending by total; nulls go last; ties broken by tiebreakIndex.
   combined.sort((a, b) => {
     if (a.totalPts === null && b.totalPts === null) return 0;
     if (a.totalPts === null) return 1;
     if (b.totalPts === null) return -1;
-    return b.totalPts - a.totalPts;
+    if (a.totalPts !== b.totalPts) return b.totalPts - a.totalPts;
+
+    const aIdx = tiebreakIndex[a.owner.name];
+    const bIdx = tiebreakIndex[b.owner.name];
+    if (aIdx !== undefined && bIdx !== undefined) return aIdx - bIdx;
+    return 0;
   });
 
   const rows = combined.map((c, i) => {
